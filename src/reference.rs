@@ -1,8 +1,15 @@
 use std::collections::HashMap;
 
-struct Reference {
+#[derive(Debug)]
+pub struct Reference {
     key: String,
     fields: HashMap<String, String>,
+}
+
+impl Reference {
+    pub fn new(key: String, fields: HashMap<String, String>) -> Reference {
+        Reference { key, fields }
+    }
 }
 
 pub fn _example_references() -> [Reference; 2] {

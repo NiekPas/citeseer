@@ -1,33 +1,36 @@
-use crate::reference::CsvError::{ParseError, ReadError};
-use std::path::PathBuf;
+// use std::path::PathBuf;
 
-use tabled::Table;
+use core::panic;
+use std::{fs, path::PathBuf};
+
+use crate::parse::parse_bibtex;
+
 extern crate shellexpand;
 
+mod parse;
 mod reference;
 
 fn main() {
     println!();
     println!();
-    let home = std::env::var("HOME").unwrap();
-    let path_str = format!("{}{}", home, "/.citeseer/references.csv");
-    let references_path = PathBuf::from(path_str);
-    let refs = reference::references_from_csv(&references_path);
-
-    match refs {
-        Ok(references) => {
-            // for reference in references.iter() {
-            //     println!("found result: {}", reference);
-            // }
-
-            println!("refs: {:?}", references);
-
-            let table = Table::new(references).to_string();
-            println!("{}", table);
+    // let home = std::env::var("HOME").unwrap();
+    let path_str = "./test_bibliography.bib";
+    if let Ok(bibtex_string) = fs::read_to_string(path_str) {
+        if let Ok(references) = parse_bibtex(bibtex_string) {
+            println!("we good");
+            println!("{}", references.len());
         }
-
-        Err(ReadError(err)) | Err(ParseError(err)) => {
-            println!("Failed to parse csv file: {}", err);
-        }
+    } else {
+        panic!("Oh fuck, the reading of the fucking file went wrong.")
     }
+    // let references = reference::_example_references();
+
+    // for reference in references.iter() {
+    //     println!("found result: {}", reference);
+    // }
+
+    // println!("refs: {:?}", references);
+
+    // let table = Table::new(references).to_string();
+    // println!("{}", table);
 }
