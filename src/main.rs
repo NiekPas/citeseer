@@ -1,12 +1,9 @@
 use core::panic;
-use std::{
-    borrow::{Borrow, BorrowMut},
-    fs,
-};
+use std::fs;
 
-use reference::{Reference, _example_references};
+use reference::Reference;
 use tabled::{
-    builder::{self, Builder},
+    builder::Builder,
     settings::{
         peaker::{PriorityMax, PriorityMin},
         Settings, Width,
