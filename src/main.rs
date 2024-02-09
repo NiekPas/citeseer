@@ -1,7 +1,7 @@
 use core::panic;
 use std::fs;
 
-use reference::Reference;
+use reference::{search_references, Reference};
 use tabled::{
     builder::Builder,
     settings::{
@@ -22,16 +22,19 @@ fn main() {
     let path_str = "./test_bibliography_small.bib";
     if let Ok(bibtex_string) = fs::read_to_string(path_str) {
         if let Ok(references) = parse_bibtex(bibtex_string) {
-            println!("{}", references.len());
-            let table = test_table(references);
-            println!("{}", table);
+            // println!("{}", references.len());
+            let _table = test_table(&references);
+            // println!("{}", table);
+            let search_string = String::from("composition");
+            let found_refs = search_references(&references, &search_string);
+            println!("{:?}", found_refs)
         }
     } else {
         panic!("Oh fuck, the reading of the fucking file went wrong.")
     }
 }
 
-fn test_table<'a>(references: Vec<Reference>) -> String {
+fn test_table<'a>(references: &Vec<Reference>) -> String {
     // let references: [Reference; 2] = _example_references();
     let mut builder = Builder::default();
     builder.push_record(["Title", "Author"]);
