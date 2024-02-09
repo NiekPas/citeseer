@@ -1,7 +1,18 @@
-// use std::path::PathBuf;
-
 use core::panic;
-use std::{fs, path::PathBuf};
+use std::{
+    borrow::{Borrow, BorrowMut},
+    fs,
+};
+
+use reference::{Reference, _example_references};
+use tabled::{
+    builder::{self, Builder},
+    settings::{
+        peaker::{PriorityMax, PriorityMin},
+        Settings, Width,
+    },
+    Table,
+};
 
 use crate::parse::parse_bibtex;
 
@@ -11,26 +22,41 @@ mod parse;
 mod reference;
 
 fn main() {
-    println!();
-    println!();
-    // let home = std::env::var("HOME").unwrap();
-    let path_str = "./test_bibliography.bib";
+    let path_str = "./test_bibliography_small.bib";
     if let Ok(bibtex_string) = fs::read_to_string(path_str) {
         if let Ok(references) = parse_bibtex(bibtex_string) {
-            println!("we good");
             println!("{}", references.len());
+            let table = test_table(references);
+            println!("{}", table);
         }
     } else {
         panic!("Oh fuck, the reading of the fucking file went wrong.")
     }
-    // let references = reference::_example_references();
+}
 
-    // for reference in references.iter() {
-    //     println!("found result: {}", reference);
-    // }
+fn test_table<'a>(references: Vec<Reference>) -> String {
+    // let references: [Reference; 2] = _example_references();
+    let mut builder = Builder::default();
+    builder.push_record(["Title", "Author"]);
 
-    // println!("refs: {:?}", references);
+    for reference in references {
+        builder.push_record(reference.as_array());
+    }
+    let width: usize = 80;
+    let mut table = builder.build();
 
-    // let table = Table::new(references).to_string();
-    // println!("{}", table);
+    table.with(Settings::new(
+        Width::truncate(width).priority::<PriorityMax>(),
+        Width::increase(width).priority::<PriorityMin>(),
+    ));
+    table.to_string()
+}
+
+fn build_table(references: Vec<Reference>) -> Table {
+    let mut builder = Builder::default();
+    for reference in references {
+        let fields = reference.fields.values();
+        builder.push_record(fields);
+    }
+    builder.build()
 }
