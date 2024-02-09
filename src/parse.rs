@@ -23,10 +23,30 @@ pub fn parse_bibtex(bibtex: String) -> Result<Vec<Reference>, String> {
         } else {
             let field = line.split('=').collect::<Vec<&str>>();
             let key = field[0].trim().to_string();
-            let value = field[1].trim().to_string();
+            let value = strip_optional_suffix(
+                strip_optional_suffix(strip_optional_prefix(field[1].trim(), "{"), ","),
+                "}",
+            )
+            .to_string();
             fields.insert(key, value);
         }
     }
 
     Ok(references)
+}
+
+fn strip_optional_prefix<'a>(s: &'a str, prefix: &str) -> &'a str {
+    if let Some(s1) = s.strip_prefix(prefix) {
+        s1
+    } else {
+        s
+    }
+}
+
+fn strip_optional_suffix<'a>(s: &'a str, suffix: &str) -> &'a str {
+    if let Some(s1) = s.strip_suffix(suffix) {
+        s1
+    } else {
+        s
+    }
 }
