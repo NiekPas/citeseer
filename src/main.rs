@@ -1,15 +1,20 @@
 use core::panic;
-use std::fs;
-
-use reference::{search_references, Reference};
-use tabled::{
-    builder::Builder,
-    settings::{
-        peaker::{PriorityMax, PriorityMin},
-        Settings, Width,
-    },
-    Table,
+use std::{
+    fs,
+    io::{self, stdout},
 };
+
+use crossterm::{
+    event::{self, Event, KeyCode},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    ExecutableCommand,
+};
+use ratatui::{
+    backend::CrosstermBackend,
+    widgets::{Block, Borders, Paragraph},
+    Frame, Terminal,
+};
+use reference::Reference;
 
 use crate::parse::parse_bibtex;
 
@@ -18,45 +23,53 @@ extern crate shellexpand;
 mod parse;
 mod reference;
 
-fn main() {
+fn main() -> io::Result<()> {
+    enable_raw_mode()?;
+    stdout().execute(EnterAlternateScreen)?;
+
     let path_str = "./test_bibliography_small.bib";
-    if let Ok(bibtex_string) = fs::read_to_string(path_str) {
-        if let Ok(references) = parse_bibtex(bibtex_string) {
-            // println!("{}", references.len());
-            let _table = test_table(&references);
-            // println!("{}", table);
-            let search_string = String::from("composition");
-            let found_refs = search_references(&references, &search_string);
-            println!("{:?}", found_refs)
+    if let Ok(references) = parse_file(path_str) {
+        start_loop();
+    }
+    disable_raw_mode()?;
+    stdout().execute(LeaveAlternateScreen)?;
+    Ok(())
+}
+
+fn parse_file(path: &str) -> Result<Vec<Reference>, String> {
+    let bibtex_string = fs::read_to_string(path).expect("Failed to open file");
+    parse_bibtex(bibtex_string)
+}
+
+fn start_loop() -> () {
+    if let Ok(mut terminal) = Terminal::new(CrosstermBackend::new(stdout())) {
+        let mut should_quit = false;
+        while !should_quit {
+            terminal.draw(ui);
+            if let Ok(sq) = handle_events() {
+                should_quit = sq;
+            } else {
+                should_quit = true;
+            }
         }
-    } else {
-        panic!("Oh fuck, the reading of the fucking file went wrong.")
     }
 }
 
-fn test_table<'a>(references: &Vec<Reference>) -> String {
-    // let references: [Reference; 2] = _example_references();
-    let mut builder = Builder::default();
-    builder.push_record(["Title", "Author"]);
-
-    for reference in references {
-        builder.push_record(reference.as_array());
-    }
-    let width: usize = 80;
-    let mut table = builder.build();
-
-    table.with(Settings::new(
-        Width::truncate(width).priority::<PriorityMax>(),
-        Width::increase(width).priority::<PriorityMin>(),
-    ));
-    table.to_string()
+fn ui(frame: &mut Frame) {
+    frame.render_widget(
+        Paragraph::new("Hello World!")
+            .block(Block::default().title("Greeting").borders(Borders::ALL)),
+        frame.size(),
+    );
 }
 
-fn build_table(references: Vec<Reference>) -> Table {
-    let mut builder = Builder::default();
-    for reference in references {
-        let fields = reference.fields.values();
-        builder.push_record(fields);
+fn handle_events() -> io::Result<bool> {
+    if event::poll(std::time::Duration::from_millis(50))? {
+        if let Event::Key(key) = event::read()? {
+            if key.kind == event::KeyEventKind::Press && key.code == KeyCode::Char('q') {
+                return Ok(true);
+            }
+        }
     }
-    builder.build()
+    Ok(false)
 }
