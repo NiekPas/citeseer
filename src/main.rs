@@ -29,7 +29,7 @@ fn main() -> io::Result<()> {
 
     let path_str = "./test_bibliography_small.bib";
     if let Ok(references) = parse_file(path_str) {
-        start_loop();
+        start_loop(&references);
     }
     disable_raw_mode()?;
     stdout().execute(LeaveAlternateScreen)?;
@@ -41,11 +41,11 @@ fn parse_file(path: &str) -> Result<Vec<Reference>, String> {
     parse_bibtex(bibtex_string)
 }
 
-fn start_loop() -> () {
+fn start_loop(references: &Vec<Reference>) -> () {
     if let Ok(mut terminal) = Terminal::new(CrosstermBackend::new(stdout())) {
         let mut should_quit = false;
         while !should_quit {
-            terminal.draw(ui);
+            terminal.draw(|frame| ui(frame, references));
             if let Ok(sq) = handle_events() {
                 should_quit = sq;
             } else {
@@ -55,10 +55,14 @@ fn start_loop() -> () {
     }
 }
 
-fn ui(frame: &mut Frame) {
+fn ui(frame: &mut Frame, references: &Vec<Reference>) {
+    let paragraph_text = references
+        .first()
+        .expect("no references found")
+        .key
+        .as_str();
     frame.render_widget(
-        Paragraph::new("Hello World!")
-            .block(Block::default().title("Greeting").borders(Borders::ALL)),
+        Paragraph::new(paragraph_text).block(Block::default().title("Greeting")),
         frame.size(),
     );
 }
