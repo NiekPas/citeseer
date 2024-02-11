@@ -10,7 +10,7 @@ impl Reference {
     pub fn new(key: String, fields: HashMap<String, String>) -> Reference {
         Reference { key, fields }
     }
-    pub fn as_array(&self) -> [&String; 2] {
+    pub fn _as_array(&self) -> [&String; 2] {
         let title = self.fields.get("title").expect("no title");
         let author = self.fields.get("author").expect("no author");
         [title, author]
@@ -57,17 +57,17 @@ pub fn _example_references() -> [Reference; 2] {
     return [reference1, reference2];
 }
 
-pub fn search_references<'a>(
+pub fn _search_references<'a>(
     references: &'a Vec<Reference>,
     search_string: &'a String,
 ) -> Vec<&'a Reference> {
     references
         .iter()
-        .filter(|reference| contains_string(reference, search_string))
+        .filter(|reference| _contains_string(reference, search_string))
         .collect()
 }
 
-fn contains_string(reference: &Reference, string: &String) -> bool {
+fn _contains_string(reference: &Reference, string: &String) -> bool {
     reference.key.contains(string)
         || reference
             .fields
