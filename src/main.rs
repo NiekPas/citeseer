@@ -11,7 +11,7 @@ use crossterm::{
 };
 use ratatui::{
     backend::CrosstermBackend,
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Paragraph},
     Frame, Terminal,
 };
 use reference::Reference;
@@ -41,15 +41,16 @@ fn parse_file(path: &str) -> Result<Vec<Reference>, String> {
     parse_bibtex(bibtex_string)
 }
 
-fn start_loop(references: &Vec<Reference>) -> () {
+fn start_loop(references: &Vec<Reference>) {
     if let Ok(mut terminal) = Terminal::new(CrosstermBackend::new(stdout())) {
-        let mut should_quit = false;
-        while !should_quit {
-            terminal.draw(|frame| ui(frame, references));
-            if let Ok(sq) = handle_events() {
-                should_quit = sq;
-            } else {
-                should_quit = true;
+        loop {
+            match terminal.draw(|frame| ui(frame, references)) {
+                Err(_) => break,
+                Ok(_) => (),
+            }
+            match handle_events() {
+                Ok(true) => break,
+                _ => (),
             }
         }
     }
