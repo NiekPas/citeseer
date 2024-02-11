@@ -1,38 +1,29 @@
-use std::{
-    fs,
-    io::{self, stdout},
-};
+//! # [Ratatui] Table example
+//!
+//! The latest version of this example is available in the [examples] folder in the repository.
+//!
+//! Please note that the examples are designed to be run against the `main` branch of the Github
+//! repository. This means that you may not be able to compile with the latest release version on
+//! crates.io, or the one that you have installed locally.
+//!
+//! See the [examples readme] for more information on finding examples that match the version of the
+//! library you are using.
+//!
+//! [Ratatui]: https://github.com/ratatui-org/ratatui
+//! [examples]: https://github.com/ratatui-org/ratatui/blob/main/examples
+//! [examples readme]: https://github.com/ratatui-org/ratatui/blob/main/examples/README.md
+
+use std::{error::Error, io};
 
 use crossterm::{
-    event::{self, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+    execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-    ExecutableCommand,
 };
-use ratatui::{
-    backend::CrosstermBackend,
-    layout::{Constraint, Layout, Margin, Rect},
-    style::{palette::tailwind, Color, Modifier, Style, Stylize},
-    text::{Line, Text},
-    widgets::{
-        Block, BorderType, Borders, Cell, HighlightSpacing, Paragraph, Row, Scrollbar,
-        ScrollbarOrientation, ScrollbarState, Table, TableState,
-    },
-    Frame, Terminal,
-};
-use reference::Reference;
-
 use itertools::Itertools;
+use ratatui::{prelude::*, widgets::*};
+use style::palette::tailwind;
 use unicode_width::UnicodeWidthStr;
-
-use crate::parse::parse_bibtex;
-
-extern crate shellexpand;
-
-mod parse;
-mod reference;
-mod table;
-
-const ITEM_HEIGHT: usize = 4;
 
 const PALETTES: [tailwind::Palette; 4] = [
     tailwind::BLUE,
@@ -42,6 +33,8 @@ const PALETTES: [tailwind::Palette; 4] = [
 ];
 const INFO_TEXT: &str =
     "(Esc) quit | (↑) move up | (↓) move down | (→) next color | (←) previous color";
+
+const ITEM_HEIGHT: usize = 4;
 
 struct TableColors {
     buffer_bg: Color,
@@ -158,115 +151,6 @@ impl App {
     }
 }
 
-fn main() -> io::Result<()> {
-    enable_raw_mode()?;
-    stdout().execute(EnterAlternateScreen)?;
-
-    let path_str = "./test_bibliography_small.bib";
-    if let Ok(references) = parse_file(path_str) {
-        start_loop(&references);
-    }
-    disable_raw_mode()?;
-    stdout().execute(LeaveAlternateScreen)?;
-    Ok(())
-}
-
-fn parse_file(path: &str) -> Result<Vec<Reference>, String> {
-    let bibtex_string = fs::read_to_string(path).expect("Failed to open file");
-    parse_bibtex(bibtex_string)
-}
-
-fn start_loop(references: &Vec<Reference>) {
-    if let Ok(mut terminal) = Terminal::new(CrosstermBackend::new(stdout())) {
-        let mut app = App::new();
-        loop {
-            match terminal.draw(|frame| ui(frame, &mut app)) {
-                Err(_) => break,
-                Ok(_) => (),
-            }
-            match handle_events() {
-                Ok(true) => break,
-                _ => (),
-            }
-        }
-    }
-}
-
-fn ui(frame: &mut Frame, app: &mut App) {
-    let header_style = Style::default()
-        .fg(app.colors.header_fg)
-        .bg(app.colors.header_bg);
-    let selected_style = Style::default()
-        .add_modifier(Modifier::REVERSED)
-        .fg(app.colors.selected_style_fg);
-
-    let header = ["Name", "Address", "Email"]
-        .iter()
-        .cloned()
-        .map(Cell::from)
-        .collect::<Row>()
-        .style(header_style)
-        .height(1);
-
-    let rows = app.items.iter().enumerate().map(|(i, data)| {
-        let color = match i % 2 {
-            0 => app.colors.normal_row_color,
-            _ => app.colors.alt_row_color,
-        };
-        let item = data.ref_array();
-        item.iter()
-            .cloned()
-            .map(|content| Cell::from(Text::from(format!("\n{}\n", content))))
-            .collect::<Row>()
-            .style(Style::new().fg(app.colors.row_fg).bg(color))
-            .height(4)
-    });
-    let bar = " █ ";
-    let table = Table::new(
-        rows,
-        [
-            // + 1 is for padding.
-            Constraint::Length(app.longest_item_lens.0 + 1),
-            Constraint::Min(app.longest_item_lens.1 + 1),
-            Constraint::Min(app.longest_item_lens.2),
-        ],
-    )
-    .header(header)
-    .highlight_style(selected_style)
-    .highlight_symbol(Text::from(vec![
-        "".into(),
-        bar.into(),
-        bar.into(),
-        "".into(),
-    ]))
-    .bg(app.colors.buffer_bg)
-    .highlight_spacing(HighlightSpacing::Always);
-
-    let rects = Layout::vertical([Constraint::Min(5), Constraint::Length(3)]).split(frame.size());
-    let area: Rect = rects[0];
-    frame.render_stateful_widget(table, area, &mut app.state)
-    // let paragraph_text = references
-    //     .first()
-    //     .expect("no references found")
-    //     .key
-    //     .as_str();
-    // frame.render_widget(
-    //     Paragraph::new(paragraph_text).block(Block::default().title("Greeting")),
-    //     frame.size(),
-    // );
-}
-
-fn handle_events() -> io::Result<bool> {
-    if event::poll(std::time::Duration::from_millis(50))? {
-        if let Event::Key(key) = event::read()? {
-            if key.kind == event::KeyEventKind::Press && key.code == KeyCode::Char('q') {
-                return Ok(true);
-            }
-        }
-    }
-    Ok(false)
-}
-
 fn generate_fake_names() -> Vec<Data> {
     use fakeit::{address, contact, name};
 
@@ -291,6 +175,118 @@ fn generate_fake_names() -> Vec<Data> {
         .sorted_by(|a, b| a.name.cmp(&b.name))
         .collect_vec()
 }
+
+fn main() -> Result<(), Box<dyn Error>> {
+    // setup terminal
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    // create app and run it
+    let app = App::new();
+    let res = run_app(&mut terminal, app);
+
+    // restore terminal
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    if let Err(err) = res {
+        println!("{err:?}");
+    }
+
+    Ok(())
+}
+
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
+    loop {
+        terminal.draw(|f| ui(f, &mut app))?;
+
+        if let Event::Key(key) = event::read()? {
+            if key.kind == KeyEventKind::Press {
+                use KeyCode::*;
+                match key.code {
+                    Char('q') | Esc => return Ok(()),
+                    Char('j') | Down => app.next(),
+                    Char('k') | Up => app.previous(),
+                    Char('l') | Right => app.next_color(),
+                    Char('h') | Left => app.previous_color(),
+                    _ => {}
+                }
+            }
+        }
+    }
+}
+
+fn ui(f: &mut Frame, app: &mut App) {
+    let rects = Layout::vertical([Constraint::Min(5), Constraint::Length(3)]).split(f.size());
+
+    app.set_colors();
+
+    render_table(f, app, rects[0]);
+
+    render_scrollbar(f, app, rects[0]);
+
+    render_footer(f, app, rects[1]);
+}
+
+fn render_table(f: &mut Frame, app: &mut App, area: Rect) {
+    let header_style = Style::default()
+        .fg(app.colors.header_fg)
+        .bg(app.colors.header_bg);
+    let selected_style = Style::default()
+        .add_modifier(Modifier::REVERSED)
+        .fg(app.colors.selected_style_fg);
+
+    let header = ["Name", "Address", "Email"]
+        .iter()
+        .cloned()
+        .map(Cell::from)
+        .collect::<Row>()
+        .style(header_style)
+        .height(1);
+    let rows = app.items.iter().enumerate().map(|(i, data)| {
+        let color = match i % 2 {
+            0 => app.colors.normal_row_color,
+            _ => app.colors.alt_row_color,
+        };
+        let item = data.ref_array();
+        item.iter()
+            .cloned()
+            .map(|content| Cell::from(Text::from(format!("\n{}\n", content))))
+            .collect::<Row>()
+            .style(Style::new().fg(app.colors.row_fg).bg(color))
+            .height(4)
+    });
+    let bar = " █ ";
+    let t = Table::new(
+        rows,
+        [
+            // + 1 is for padding.
+            Constraint::Length(app.longest_item_lens.0 + 1),
+            Constraint::Min(app.longest_item_lens.1 + 1),
+            Constraint::Min(app.longest_item_lens.2),
+        ],
+    )
+    .header(header)
+    .highlight_style(selected_style)
+    .highlight_symbol(Text::from(vec![
+        "".into(),
+        bar.into(),
+        bar.into(),
+        "".into(),
+    ]))
+    .bg(app.colors.buffer_bg)
+    .highlight_spacing(HighlightSpacing::Always);
+    f.render_stateful_widget(t, area, &mut app.state);
+}
+
 fn constraint_len_calculator(items: &[Data]) -> (u16, u16, u16) {
     let name_len = items
         .iter()
@@ -340,4 +336,32 @@ fn render_footer(f: &mut Frame, app: &mut App, area: Rect) {
                 .border_type(BorderType::Double),
         );
     f.render_widget(info_footer, area);
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Data;
+
+    #[test]
+    fn constraint_len_calculator() {
+        let test_data = vec![
+            Data {
+                name: "Emirhan Tala".to_string(),
+                address: "Cambridgelaan 6XX\n3584 XX Utrecht".to_string(),
+                email: "tala.emirhan@gmail.com".to_string(),
+            },
+            Data {
+                name: "thistextis26characterslong".to_string(),
+                address: "this line is 31 characters long\nbottom line is 33 characters long"
+                    .to_string(),
+                email: "thisemailis40caharacterslong@ratatui.com".to_string(),
+            },
+        ];
+        let (longest_name_len, longest_address_len, longest_email_len) =
+            crate::constraint_len_calculator(&test_data);
+
+        assert_eq!(26, longest_name_len);
+        assert_eq!(33, longest_address_len);
+        assert_eq!(40, longest_email_len);
+    }
 }
