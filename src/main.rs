@@ -1,38 +1,18 @@
-use std::{
-    fs,
-    io::{self, stdout},
-};
-
-use crossterm::{
-    event::{self, Event, KeyCode},
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-    ExecutableCommand,
-};
-use ratatui::{
-    backend::CrosstermBackend,
-    layout::{Constraint, Layout, Margin, Rect},
-    style::{palette::tailwind, Color, Modifier, Style, Stylize},
-    text::{Line, Text},
-    widgets::{
-        Block, BorderType, Borders, Cell, HighlightSpacing, Paragraph, Row, Scrollbar,
-        ScrollbarOrientation, ScrollbarState, Table, TableState,
-    },
-    Frame, Terminal,
-};
-use reference::Reference;
-
-use itertools::Itertools;
-use unicode_width::UnicodeWidthStr;
-
-use crate::parse::parse_bibtex;
-
-extern crate shellexpand;
-
 mod parse;
 mod reference;
-mod table;
 
-const ITEM_HEIGHT: usize = 4;
+use std::{error::Error, fs, io};
+
+use crossterm::{
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use parse::parse_bibtex;
+use ratatui::{prelude::*, widgets::*};
+use reference::Reference;
+use style::palette::tailwind;
+use unicode_width::UnicodeWidthStr;
 
 const PALETTES: [tailwind::Palette; 4] = [
     tailwind::BLUE,
@@ -42,6 +22,8 @@ const PALETTES: [tailwind::Palette; 4] = [
 ];
 const INFO_TEXT: &str =
     "(Esc) quit | (↑) move up | (↓) move down | (→) next color | (←) previous color";
+
+const ITEM_HEIGHT: usize = 4;
 
 struct TableColors {
     buffer_bg: Color,
@@ -69,34 +51,10 @@ impl TableColors {
     }
 }
 
-struct Data {
-    name: String,
-    address: String,
-    email: String,
-}
-
-impl Data {
-    fn ref_array(&self) -> [&String; 3] {
-        [&self.name, &self.address, &self.email]
-    }
-
-    fn name(&self) -> &str {
-        &self.name
-    }
-
-    fn address(&self) -> &str {
-        &self.address
-    }
-
-    fn email(&self) -> &str {
-        &self.email
-    }
-}
-
 struct App {
     state: TableState,
-    items: Vec<Data>,
-    longest_item_lens: (u16, u16, u16), // order is (name, address, email)
+    items: Vec<Reference>,
+    longest_item_lens: (u16, u16, u16), // order is (key, author, title)
     scroll_state: ScrollbarState,
     colors: TableColors,
     color_index: usize,
@@ -104,17 +62,18 @@ struct App {
 
 impl App {
     fn new() -> App {
-        let data_vec = generate_fake_names();
+        let path_str = "./test_bibliography_small.bib";
+        let references = parse_file(path_str).expect("Failed to parse file");
         App {
             state: TableState::default().with_selected(0),
-            longest_item_lens: constraint_len_calculator(&data_vec),
-            scroll_state: ScrollbarState::new((data_vec.len() - 1) * ITEM_HEIGHT),
+            longest_item_lens: constraint_len_calculator(&references),
+            scroll_state: ScrollbarState::new((references.len() - 1) * ITEM_HEIGHT),
             colors: TableColors::new(&PALETTES[0]),
             color_index: 0,
-            items: data_vec,
+            items: references,
         }
     }
-    pub fn next(&mut self) {
+    pub fn select_next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
                 if i >= self.items.len() - 1 {
@@ -129,7 +88,7 @@ impl App {
         self.scroll_state = self.scroll_state.position(i * ITEM_HEIGHT);
     }
 
-    pub fn previous(&mut self) {
+    pub fn select_previous(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
                 if i == 0 {
@@ -158,41 +117,72 @@ impl App {
     }
 }
 
-fn main() -> io::Result<()> {
-    enable_raw_mode()?;
-    stdout().execute(EnterAlternateScreen)?;
-
-    let path_str = "./test_bibliography_small.bib";
-    if let Ok(references) = parse_file(path_str) {
-        start_loop(&references);
-    }
-    disable_raw_mode()?;
-    stdout().execute(LeaveAlternateScreen)?;
-    Ok(())
-}
-
 fn parse_file(path: &str) -> Result<Vec<Reference>, String> {
     let bibtex_string = fs::read_to_string(path).expect("Failed to open file");
     parse_bibtex(bibtex_string)
 }
 
-fn start_loop(references: &Vec<Reference>) {
-    if let Ok(mut terminal) = Terminal::new(CrosstermBackend::new(stdout())) {
-        let mut app = App::new();
-        loop {
-            match terminal.draw(|frame| ui(frame, &mut app)) {
-                Err(_) => break,
-                Ok(_) => (),
-            }
-            match handle_events() {
-                Ok(true) => break,
-                _ => (),
+fn main() -> Result<(), Box<dyn Error>> {
+    // setup terminal
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    // create app and run it
+    let app = App::new();
+    let res = run_app(&mut terminal, app);
+
+    // restore terminal
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    if let Err(err) = res {
+        println!("{err:?}");
+    }
+
+    Ok(())
+}
+
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
+    loop {
+        terminal.draw(|frame| ui(frame, &mut app))?;
+
+        if let Event::Key(key) = event::read()? {
+            if key.kind == KeyEventKind::Press {
+                use KeyCode::*;
+                match key.code {
+                    Char('q') | Esc => return Ok(()),
+                    Char('j') | Down => app.select_next(),
+                    Char('k') | Up => app.select_previous(),
+                    Char('l') | Right => app.next_color(),
+                    Char('h') | Left => app.previous_color(),
+                    _ => {}
+                }
             }
         }
     }
 }
 
 fn ui(frame: &mut Frame, app: &mut App) {
+    let rects = Layout::vertical([Constraint::Min(5), Constraint::Length(3)]).split(frame.size());
+
+    app.set_colors();
+
+    render_table(frame, app, rects[0]);
+
+    render_scrollbar(frame, app, rects[0]);
+
+    render_footer(frame, app, rects[1]);
+}
+
+fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
     let header_style = Style::default()
         .fg(app.colors.header_fg)
         .bg(app.colors.header_bg);
@@ -200,27 +190,27 @@ fn ui(frame: &mut Frame, app: &mut App) {
         .add_modifier(Modifier::REVERSED)
         .fg(app.colors.selected_style_fg);
 
-    let header = ["Name", "Address", "Email"]
+    let header = ["Key", "Author", "Title"]
         .iter()
         .cloned()
         .map(Cell::from)
         .collect::<Row>()
         .style(header_style)
         .height(1);
-
     let rows = app.items.iter().enumerate().map(|(i, data)| {
         let color = match i % 2 {
             0 => app.colors.normal_row_color,
             _ => app.colors.alt_row_color,
         };
-        let item = data.ref_array();
-        item.iter()
+        data.as_array()
+            .iter()
             .cloned()
             .map(|content| Cell::from(Text::from(format!("\n{}\n", content))))
             .collect::<Row>()
             .style(Style::new().fg(app.colors.row_fg).bg(color))
             .height(4)
     });
+
     let bar = " █ ";
     let table = Table::new(
         rows,
@@ -241,82 +231,44 @@ fn ui(frame: &mut Frame, app: &mut App) {
     ]))
     .bg(app.colors.buffer_bg)
     .highlight_spacing(HighlightSpacing::Always);
-
-    let rects = Layout::vertical([Constraint::Min(5), Constraint::Length(3)]).split(frame.size());
-    let area: Rect = rects[0];
-    frame.render_stateful_widget(table, area, &mut app.state)
-    // let paragraph_text = references
-    //     .first()
-    //     .expect("no references found")
-    //     .key
-    //     .as_str();
-    // frame.render_widget(
-    //     Paragraph::new(paragraph_text).block(Block::default().title("Greeting")),
-    //     frame.size(),
-    // );
+    frame.render_stateful_widget(table, area, &mut app.state);
 }
 
-fn handle_events() -> io::Result<bool> {
-    if event::poll(std::time::Duration::from_millis(50))? {
-        if let Event::Key(key) = event::read()? {
-            if key.kind == event::KeyEventKind::Press && key.code == KeyCode::Char('q') {
-                return Ok(true);
-            }
-        }
-    }
-    Ok(false)
-}
+fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16) {
+    let key_len = items
+        .iter()
+        .map(Reference::key)
+        .map(UnicodeWidthStr::width)
+        .max()
+        .unwrap_or(0);
 
-fn generate_fake_names() -> Vec<Data> {
-    use fakeit::{address, contact, name};
-
-    (0..20)
-        .map(|_| {
-            let name = name::full();
-            let address = format!(
-                "{}\n{}, {} {}",
-                address::street(),
-                address::city(),
-                address::state(),
-                address::zip()
-            );
-            let email = contact::email();
-
-            Data {
-                name,
-                address,
-                email,
-            }
+    let author_len = items
+        .iter()
+        .map(Reference::author)
+        .flat_map(|u| match u {
+            Some(s) => s.lines(),
+            _ => "".lines(), // TODO I don't know if this is the best approach
         })
-        .sorted_by(|a, b| a.name.cmp(&b.name))
-        .collect_vec()
-}
-fn constraint_len_calculator(items: &[Data]) -> (u16, u16, u16) {
-    let name_len = items
-        .iter()
-        .map(Data::name)
-        .map(UnicodeWidthStr::width)
-        .max()
-        .unwrap_or(0);
-    let address_len = items
-        .iter()
-        .map(Data::address)
-        .flat_map(str::lines)
-        .map(UnicodeWidthStr::width)
-        .max()
-        .unwrap_or(0);
-    let email_len = items
-        .iter()
-        .map(Data::email)
         .map(UnicodeWidthStr::width)
         .max()
         .unwrap_or(0);
 
-    (name_len as u16, address_len as u16, email_len as u16)
+    let title_len = items
+        .iter()
+        .map(Reference::title)
+        .flat_map(|u| match u {
+            Some(s) => s.lines(),
+            _ => "".lines(), // TODO I don't know if this is the best approach
+        })
+        .map(UnicodeWidthStr::width)
+        .max()
+        .unwrap_or(0);
+
+    (key_len as u16, author_len as u16, title_len as u16)
 }
 
-fn render_scrollbar(f: &mut Frame, app: &mut App, area: Rect) {
-    f.render_stateful_widget(
+fn render_scrollbar(frame: &mut Frame, app: &mut App, area: Rect) {
+    frame.render_stateful_widget(
         Scrollbar::default()
             .orientation(ScrollbarOrientation::VerticalRight)
             .begin_symbol(None)
@@ -329,7 +281,7 @@ fn render_scrollbar(f: &mut Frame, app: &mut App, area: Rect) {
     );
 }
 
-fn render_footer(f: &mut Frame, app: &mut App, area: Rect) {
+fn render_footer(frame: &mut Frame, app: &mut App, area: Rect) {
     let info_footer = Paragraph::new(Line::from(INFO_TEXT))
         .style(Style::new().fg(app.colors.row_fg).bg(app.colors.buffer_bg))
         .centered()
@@ -339,5 +291,5 @@ fn render_footer(f: &mut Frame, app: &mut App, area: Rect) {
                 .border_style(Style::new().fg(app.colors.footer_border_color))
                 .border_type(BorderType::Double),
         );
-    f.render_widget(info_footer, area);
+    frame.render_widget(info_footer, area);
 }

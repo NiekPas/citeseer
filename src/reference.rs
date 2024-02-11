@@ -10,10 +10,47 @@ impl Reference {
     pub fn new(key: String, fields: HashMap<String, String>) -> Reference {
         Reference { key, fields }
     }
-    pub fn _as_array(&self) -> [&String; 2] {
+    pub fn as_array(&self) -> [&String; 3] {
+        // TODO unwrap this
         let title = self.fields.get("title").expect("no title");
         let author = self.fields.get("author").expect("no author");
-        [title, author]
+        [&self.key, title, author]
+    }
+
+    pub fn key(&self) -> &str {
+        &self.key
+    }
+
+    pub fn title(&self) -> Option<&String> {
+        self.fields.get("title")
+    }
+
+    pub fn author(&self) -> Option<&String> {
+        self.fields.get("author")
+    }
+}
+
+impl PartialEq for Reference {
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key && self.fields == other.fields
+    }
+}
+
+impl Eq for Reference {}
+
+impl PartialOrd for Reference {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let a1 = self.fields.get("author");
+        let a2 = other.fields.get("author");
+        a1.partial_cmp(&a2)
+    }
+}
+
+impl Ord for Reference {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let a1 = self.fields.get("author");
+        let a2 = other.fields.get("author");
+        a1.cmp(&a2)
     }
 }
 
