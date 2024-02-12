@@ -10,11 +10,12 @@ impl Reference {
     pub fn new(key: String, fields: HashMap<String, String>) -> Reference {
         Reference { key, fields }
     }
-    pub fn as_array(&self) -> [&String; 3] {
+    pub fn as_array(&self) -> [&String; 4] {
         // TODO unwrap this
         let title = self.fields.get("title").expect("no title");
         let author = self.fields.get("author").expect("no author");
-        [&self.key, title, author]
+        let year = self.fields.get("year").expect("no year");
+        [&self.key, author, year, title]
     }
 
     pub fn key(&self) -> &str {

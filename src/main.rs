@@ -190,7 +190,7 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
         .add_modifier(Modifier::REVERSED)
         .fg(app.colors.selected_style_fg);
 
-    let header = ["Key", "Author", "Title"]
+    let header = ["Key", "Author", "Year", "Title"]
         .iter()
         .cloned()
         .map(Cell::from)
@@ -216,9 +216,13 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
         rows,
         [
             // + 1 is for padding.
-            Constraint::Length(app.longest_item_lens.0 + 1),
-            Constraint::Min(app.longest_item_lens.1 + 1),
-            Constraint::Min(app.longest_item_lens.2),
+            // Constraint::Length(app.longest_item_lens.0 + 1),
+            // Constraint::Min(app.longest_item_lens.1 + 1),
+            // Constraint::Min(app.longest_item_lens.2),
+            Constraint::Length(20),
+            Constraint::Length(20),
+            Constraint::Length(20),
+            Constraint::Length(20),
         ],
     )
     .header(header)
