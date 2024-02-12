@@ -197,13 +197,14 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
         .collect::<Row>()
         .style(header_style)
         .height(1);
-    let rows = app.items.iter().enumerate().map(|(i, data)| {
+    let rows = app.items.iter().enumerate().map(|(i, reference)| {
         let color = match i % 2 {
             0 => app.colors.normal_row_color,
             _ => app.colors.alt_row_color,
         };
 
-        data.as_array()
+        reference
+            .as_array()
             .iter()
             .cloned()
             .map(|content| Cell::from(Text::from(format!("\n{}\n", content))))
