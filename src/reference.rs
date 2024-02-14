@@ -6,16 +6,32 @@ pub struct Reference {
     pub fields: HashMap<String, String>,
 }
 
+struct Author {
+    first_name: String,
+    last_name: String,
+}
+
+impl Author {
+    fn new(first_name: String, last_name: String) -> Self {
+        Self {
+            first_name,
+            last_name,
+        }
+    }
+}
+
 impl Reference {
     pub fn new(key: String, fields: HashMap<String, String>) -> Reference {
         Reference { key, fields }
     }
-    pub fn as_array(&self) -> [&String; 4] {
+
+    pub fn as_array(&self) -> [Option<String>; 4] {
         // TODO unwrap this
-        let title = self.fields.get("title").expect("no title");
-        let author = self.fields.get("author").expect("no author");
-        let year = self.fields.get("year").expect("no year");
-        [&self.key, author, year, title]
+        let title: Option<String> = self.fields.get("title").cloned();
+        let author: Option<String> = self.formatted_author().to_owned();
+        let year: Option<String> = self.fields.get("year").cloned();
+
+        [Some(self.key.to_owned()), author, year, title]
     }
 
     pub fn key(&self) -> &str {
@@ -28,6 +44,14 @@ impl Reference {
 
     pub fn author(&self) -> Option<&String> {
         self.fields.get("author")
+    }
+
+    pub fn formatted_author(&self) -> Option<String> {
+        self.fields
+            .get("author")
+            .and_then(extract_authors)
+            .map(|authors| authors.iter().map(format_author).collect::<Vec<String>>())
+            .map(|authors| authors.join("; "))
     }
 }
 
@@ -95,6 +119,30 @@ pub fn _example_references() -> [Reference; 2] {
     return [reference1, reference2];
 }
 
+fn extract_authors(author: &String) -> Option<Vec<Author>> {
+    author
+        .split(" and ")
+        .map(|author| author.split(","))
+        .map(|lastname_firstname| {
+            let vec = lastname_firstname.collect::<Vec<&str>>();
+            if let Some((last_name, first_name)) =
+                vec.get(0).and_then(|last_name| match vec.get(1) {
+                    Some(first_name) => Some((last_name, first_name)),
+                    None => None,
+                })
+            {
+                Some(Author::new(
+                    first_name.trim().to_owned(),
+                    last_name.trim().to_owned(),
+                ))
+                // Some((first_name.trim(), last_name.trim()))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
 pub fn _search_references<'a>(
     references: &'a Vec<Reference>,
     search_string: &'a String,
@@ -111,4 +159,8 @@ fn _contains_string(reference: &Reference, string: &String) -> bool {
             .fields
             .values()
             .any(|value| value.contains(string))
+}
+
+fn format_author(author: &Author) -> String {
+    format!("{}, {}", author.last_name, author.first_name)
 }

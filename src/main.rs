@@ -207,6 +207,7 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
             .as_array()
             .iter()
             .cloned()
+            .map(|content| content.unwrap_or_default())
             .map(|content| Cell::from(Text::from(format!("\n{}\n", content))))
             .collect::<Row>()
             .style(Style::new().fg(app.colors.row_fg).bg(color))
