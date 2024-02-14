@@ -252,7 +252,7 @@ fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16) {
     let author_len = items
         .iter()
         .map(Reference::author)
-        .flat_map(|u| match u {
+        .flat_map(|title| match title {
             Some(s) => s.lines(),
             _ => "".lines(), // TODO I don't know if this is the best approach
         })
@@ -263,7 +263,7 @@ fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16) {
     let title_len = items
         .iter()
         .map(Reference::title)
-        .flat_map(|u| match u {
+        .flat_map(|title| match title {
             Some(s) => s.lines(),
             _ => "".lines(), // TODO I don't know if this is the best approach
         })
