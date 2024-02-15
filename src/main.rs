@@ -54,7 +54,7 @@ impl TableColors {
 struct App {
     state: TableState,
     items: Vec<Reference>,
-    longest_item_lens: (u16, u16, u16), // order is (key, author, title)
+    longest_item_lens: (u16, u16, u16, u16), // order is (key, author, year, title)
     scroll_state: ScrollbarState,
     colors: TableColors,
     color_index: usize,
@@ -190,7 +190,7 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
         .add_modifier(Modifier::REVERSED)
         .fg(app.colors.selected_style_fg);
 
-    let header = ["Key", "Author", "Year", "Title"]
+    let header = ["Key", "Authors", "Year", "Title"]
         .iter()
         .cloned()
         .map(Cell::from)
@@ -219,13 +219,14 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
         rows,
         [
             // + 1 is for padding.
-            // Constraint::Length(app.longest_item_lens.0 + 1),
-            // Constraint::Min(app.longest_item_lens.1 + 1),
-            // Constraint::Min(app.longest_item_lens.2),
-            Constraint::Length(20),
-            Constraint::Length(20),
-            Constraint::Length(20),
-            Constraint::Length(20),
+            // key
+            Constraint::Min(app.longest_item_lens.0 + 1),
+            // author
+            Constraint::Min((app.longest_item_lens.1) + 1),
+            // year
+            Constraint::Min(app.longest_item_lens.2),
+            // title
+            Constraint::Min(app.longest_item_lens.3),
         ],
     )
     .header(header)
@@ -241,7 +242,7 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
     frame.render_stateful_widget(table, area, &mut app.state);
 }
 
-fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16) {
+fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16) {
     let key_len = items
         .iter()
         .map(Reference::key)
@@ -252,6 +253,17 @@ fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16) {
     let author_len = items
         .iter()
         .map(Reference::author)
+        .flat_map(|title| match title {
+            Some(s) => s.lines(),
+            _ => "".lines(), // TODO I don't know if this is the best approach
+        })
+        .map(UnicodeWidthStr::width)
+        .max()
+        .unwrap_or(0);
+
+    let year_len = items
+        .iter()
+        .map(Reference::year)
         .flat_map(|title| match title {
             Some(s) => s.lines(),
             _ => "".lines(), // TODO I don't know if this is the best approach
@@ -271,7 +283,12 @@ fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16) {
         .max()
         .unwrap_or(0);
 
-    (key_len as u16, author_len as u16, title_len as u16)
+    (
+        key_len as u16,
+        author_len as u16,
+        year_len as u16,
+        title_len as u16,
+    )
 }
 
 fn render_scrollbar(frame: &mut Frame, app: &mut App, area: Rect) {

@@ -46,6 +46,10 @@ impl Reference {
         self.fields.get("author")
     }
 
+    pub fn year(&self) -> Option<&String> {
+        self.fields.get("year")
+    }
+
     pub fn formatted_author(&self) -> Option<String> {
         self.fields
             .get("author")
