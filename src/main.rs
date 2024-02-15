@@ -1,7 +1,7 @@
 mod parse;
 mod reference;
 
-use std::{error::Error, fs, io};
+use std::{error::Error, fs, io, str::Lines};
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
@@ -243,6 +243,13 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
 }
 
 fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16) {
+    fn make_lines(title: Option<String>) -> Vec<String> {
+        match title {
+            Some(string) => string.lines().map(|s| s.to_owned()).collect(),
+            None => vec![],
+        }
+    }
+
     let key_len = items
         .iter()
         .map(Reference::key)
@@ -252,12 +259,9 @@ fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16) {
 
     let author_len = items
         .iter()
-        .map(Reference::author)
-        .flat_map(|title| match title {
-            Some(s) => s.lines(),
-            _ => "".lines(), // TODO I don't know if this is the best approach
-        })
-        .map(UnicodeWidthStr::width)
+        .map(Reference::formatted_author)
+        .flat_map(|title| make_lines(title))
+        .map(|s| UnicodeWidthStr::width(&s as &str))
         .max()
         .unwrap_or(0);
 

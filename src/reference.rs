@@ -165,5 +165,9 @@ fn _contains_string(reference: &Reference, string: &String) -> bool {
 }
 
 fn format_author(author: &Author) -> String {
-    format!("{}, {}", author.last_name, author.first_name)
+    format!(
+        "{}, {}.",
+        author.last_name,
+        author.first_name.chars().next().unwrap_or_default()
+    )
 }
