@@ -223,10 +223,10 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
             Constraint::Min(app.longest_item_lens.0 + 1),
             // author
             Constraint::Min((app.longest_item_lens.1) + 1),
-            // year
-            Constraint::Min(app.longest_item_lens.2),
-            // title
-            Constraint::Min(app.longest_item_lens.3),
+            // Years are pretty much always 4 digits long, so setting using `Length` is fine here
+            Constraint::Length(app.longest_item_lens.2 + 1),
+            // Let title take up the rest of the space
+            Constraint::Fill(1),
         ],
     )
     .header(header)
