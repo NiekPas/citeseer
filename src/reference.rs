@@ -26,7 +26,6 @@ impl Reference {
     }
 
     pub fn as_array(&self) -> [Option<String>; 4] {
-        // TODO unwrap this
         let title: Option<String> = self.fields.get("title").cloned();
         let author: Option<String> = self.formatted_author().to_owned();
         let year: Option<String> = self.fields.get("year").cloned();
