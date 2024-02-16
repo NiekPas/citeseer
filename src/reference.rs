@@ -134,7 +134,6 @@ fn extract_authors(author: &String) -> Option<Vec<Author>> {
                     first_name.trim().to_owned(),
                     last_name.trim().to_owned(),
                 ))
-                // Some((first_name.trim(), last_name.trim()))
             } else {
                 None
             }

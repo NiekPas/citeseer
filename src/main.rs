@@ -64,6 +64,7 @@ impl App {
     fn new() -> App {
         let path_str = "./test_bibliography_small.bib";
         let references = parse_file(path_str).expect("Failed to parse file");
+
         App {
             state: TableState::default().with_selected(0),
             longest_item_lens: constraint_len_calculator(&references),
@@ -73,6 +74,7 @@ impl App {
             items: references,
         }
     }
+
     pub fn select_next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
