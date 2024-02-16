@@ -62,7 +62,7 @@ struct App {
 
 impl App {
     fn new() -> App {
-        let path_str = "./test_bibliography_small.bib";
+        let path_str = "./test_bibliography.bib";
         let references = parse_file(path_str).expect("Failed to parse file");
 
         App {

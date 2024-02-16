@@ -6,16 +6,31 @@ pub struct Reference {
     pub fields: HashMap<String, String>,
 }
 
+enum AuthorName {
+    FirstNameLastName {
+        first_name: String,
+        last_name: String,
+    },
+    FullName(String),
+}
+
 struct Author {
-    first_name: String,
-    last_name: String,
+    name: AuthorName,
 }
 
 impl Author {
     fn new(first_name: String, last_name: String) -> Self {
         Self {
-            first_name,
-            last_name,
+            name: AuthorName::FirstNameLastName {
+                first_name,
+                last_name,
+            },
+        }
+    }
+
+    fn new_from_full_name(full_name: String) -> Self {
+        Self {
+            name: AuthorName::FullName(full_name),
         }
     }
 }
@@ -48,7 +63,7 @@ impl Reference {
     pub fn formatted_author(&self) -> Option<String> {
         self.fields
             .get("author")
-            .and_then(extract_authors)
+            .map(extract_authors)
             .map(|authors| authors.iter().map(format_author).collect::<Vec<String>>())
             .map(|authors| authors.join("; "))
     }
@@ -118,7 +133,7 @@ pub fn _example_references() -> [Reference; 2] {
     return [reference1, reference2];
 }
 
-fn extract_authors(author: &String) -> Option<Vec<Author>> {
+fn extract_authors(author: &String) -> Vec<Author> {
     author
         .split(" and ")
         .map(|author| author.split(","))
@@ -130,12 +145,9 @@ fn extract_authors(author: &String) -> Option<Vec<Author>> {
                     None => None,
                 })
             {
-                Some(Author::new(
-                    first_name.trim().to_owned(),
-                    last_name.trim().to_owned(),
-                ))
+                Author::new(first_name.trim().to_owned(), last_name.trim().to_owned())
             } else {
-                None
+                Author::new_from_full_name(vec[0].to_string())
             }
         })
         .collect()
@@ -160,9 +172,15 @@ fn _contains_string(reference: &Reference, string: &String) -> bool {
 }
 
 fn format_author(author: &Author) -> String {
-    format!(
-        "{}, {}.",
-        author.last_name,
-        author.first_name.chars().next().unwrap_or_default()
-    )
+    match author.name {
+        AuthorName::FirstNameLastName {
+            ref first_name,
+            ref last_name,
+        } => format!(
+            "{}, {}",
+            last_name,
+            first_name.chars().next().unwrap_or_default()
+        ),
+        AuthorName::FullName(ref full_name) => full_name.to_string(),
+    }
 }
