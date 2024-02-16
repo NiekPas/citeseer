@@ -41,10 +41,6 @@ impl Reference {
         self.fields.get("title")
     }
 
-    pub fn author(&self) -> Option<&String> {
-        self.fields.get("author")
-    }
-
     pub fn year(&self) -> Option<&String> {
         self.fields.get("year")
     }

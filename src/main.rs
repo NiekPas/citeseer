@@ -1,7 +1,7 @@
 mod parse;
 mod reference;
 
-use std::{error::Error, fs, io, str::Lines};
+use std::{error::Error, fs, io};
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
