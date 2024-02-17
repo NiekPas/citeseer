@@ -223,8 +223,8 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
             // + 1 is for padding.
             // key
             Constraint::Min(app.longest_item_lens.0 + 1),
-            // author
-            Constraint::Min((app.longest_item_lens.1) + 1),
+            // For the author, we use a percentage, because the longest item is going to be like 300 characters
+            Constraint::Percentage(25),
             // Years are pretty much always 4 digits long, so setting using `Length` is fine here
             Constraint::Length(app.longest_item_lens.2 + 1),
             // Let title take up the rest of the space
