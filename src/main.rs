@@ -23,7 +23,7 @@ const PALETTES: [tailwind::Palette; 4] = [
 const INFO_TEXT: &str =
     "(Esc) quit | (↑) move up | (↓) move down | (→) next color | (←) previous color";
 
-const ITEM_HEIGHT: usize = 4;
+const ITEM_HEIGHT: usize = 1;
 
 struct TableColors {
     buffer_bg: Color,
@@ -204,16 +204,17 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
             0 => app.colors.normal_row_color,
             _ => app.colors.alt_row_color,
         };
+        let row_style = Style::new().fg(app.colors.row_fg).bg(color);
 
         reference
             .as_array()
             .iter()
             .cloned()
             .map(|content| content.unwrap_or_default())
-            .map(|content| Cell::from(Text::from(format!("\n{}\n", content))))
+            .map(|content| Cell::from(Text::from(format!("{}", content))))
             .collect::<Row>()
-            .style(Style::new().fg(app.colors.row_fg).bg(color))
-            .height(4)
+            .style(row_style)
+            .height(ITEM_HEIGHT.try_into().unwrap())
     });
 
     let bar = " █ ";
