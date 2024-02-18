@@ -1,7 +1,7 @@
 mod parse;
 mod reference;
 
-use std::{error::Error, fs, io};
+use std::{cmp::Ordering, error::Error, fs, io};
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
@@ -199,7 +199,11 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
         .collect::<Row>()
         .style(header_style)
         .height(1);
-    let rows = app.items.iter().enumerate().map(|(i, reference)| {
+    let items = &mut app.items;
+
+    items.sort_by(compare_authors);
+
+    let rows = items.iter().enumerate().map(|(i, reference)| {
         let color = match i % 2 {
             0 => app.colors.normal_row_color,
             _ => app.colors.alt_row_color,
@@ -243,6 +247,10 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
     .bg(app.colors.buffer_bg)
     .highlight_spacing(HighlightSpacing::Always);
     frame.render_stateful_widget(table, area, &mut app.state);
+}
+
+fn compare_authors(a: &Reference, b: &Reference) -> Ordering {
+    a.formatted_author().cmp(&b.formatted_author())
 }
 
 fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16) {
