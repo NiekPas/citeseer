@@ -1,3 +1,7 @@
+// TODO:
+// - Add a search bar
+// - Refactor UI into its own module
+// - Add copy to bibtex support
 mod parse;
 mod reference;
 
@@ -218,6 +222,7 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
             .map(|content| Cell::from(Text::from(format!("{}", content))))
             .collect::<Row>()
             .style(row_style)
+            // Using unwrap() is fine here, because ITEM_HEIGHT is a constant
             .height(ITEM_HEIGHT.try_into().unwrap())
     });
 
@@ -227,7 +232,9 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
         [
             // + 1 is for padding.
             // key
-            Constraint::Min(app.longest_item_lens.0 + 1),
+            // This is somewhat arbitrary, but having the column be slightly less wide than to fit is fine for keys,
+            // since we normally don't need to see the entire key anyway.
+            Constraint::Min(app.longest_item_lens.0 - 6),
             // For the author, we use a percentage, because the longest item is going to be like 300 characters
             Constraint::Percentage(25),
             // Years are almost always 4 digits long, so setting using `Length` to 6 is fine here.
