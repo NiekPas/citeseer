@@ -1,5 +1,9 @@
 // TODO:
+// - Last name heuristic: if full name is of the form "John Doe", assume first-last order
+// - Make field parsing case-insensitive
 // - Add a search bar
+// - Write tests
+
 mod app;
 mod parse;
 mod reference;
