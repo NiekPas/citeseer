@@ -11,7 +11,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::{reference::Reference, App, ITEM_HEIGHT};
+use crate::{app::ITEM_HEIGHT, reference::Reference, App};
 
 const INFO_TEXT: &str =
     "(Esc) quit | (↑) move up | (↓) move down | (→) next color | (←) previous color";
