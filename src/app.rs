@@ -109,6 +109,13 @@ impl App {
     pub fn set_colors(&mut self) {
         self.colors = TableColors::new(&PALETTES[self.color_index])
     }
+
+    pub fn yank(&self) -> Option<()> {
+        let currently_selected_index = self.state.selected()?;
+        let currently_selected_reference: &Reference = self.items.get(currently_selected_index)?;
+        let reference_bibtex = currently_selected_reference.to_bibtex();
+        cli_clipboard::set_contents(reference_bibtex).ok()
+    }
 }
 
 fn parse_file(path: &str) -> Result<Vec<Reference>, String> {

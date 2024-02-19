@@ -67,6 +67,18 @@ impl Reference {
             .map(|authors| authors.iter().map(format_author).collect::<Vec<String>>())
             .map(|authors| authors.join("; "))
     }
+
+    pub fn to_bibtex(&self) -> String {
+        let mut bibtex = format!("@article{{{key},\n", key = self.key);
+
+        for (field, value) in &self.fields {
+            bibtex.push_str(&format!("    {} = {{{}}},\n", field, value));
+        }
+
+        bibtex.push_str("}\n");
+
+        bibtex
+    }
 }
 
 impl PartialEq for Reference {

@@ -1,6 +1,5 @@
 // TODO:
 // - Add a search bar
-// - Add copy to bibtex support
 mod app;
 mod parse;
 mod reference;
@@ -59,6 +58,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     Char('k') | Up => app.select_previous(),
                     Char('l') | Right => app.next_color(),
                     Char('h') | Left => app.previous_color(),
+                    Char('y') => match app.yank() {
+                        Some(_) => {}
+                        None => {} // TODO
+                    },
                     _ => {}
                 }
             }
