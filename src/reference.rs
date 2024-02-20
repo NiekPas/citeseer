@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::Split};
 
 #[derive(Debug)]
 pub struct Reference {
@@ -6,6 +6,7 @@ pub struct Reference {
     pub fields: HashMap<String, String>,
 }
 
+#[derive(Debug, PartialEq)]
 enum AuthorName {
     FirstNameLastName {
         first_name: String,
@@ -14,6 +15,7 @@ enum AuthorName {
     FullName(String),
 }
 
+#[derive(Debug, PartialEq)]
 struct Author {
     name: AuthorName,
 }
@@ -63,7 +65,7 @@ impl Reference {
     pub fn formatted_author(&self) -> Option<String> {
         self.fields
             .get("author")
-            .map(extract_authors)
+            .map(extract_authors_from_string)
             .map(|authors| authors.iter().map(format_author).collect::<Vec<String>>())
             .map(|authors| authors.join("; "))
     }
@@ -105,63 +107,38 @@ impl Ord for Reference {
     }
 }
 
-pub fn _example_references() -> [Reference; 2] {
-    let mut fields1: HashMap<String, String> = HashMap::new();
-    let mut fields2: HashMap<String, String> = HashMap::new();
-
-    fields1.insert(String::from("author"), String::from("Smith, John"));
-    fields1.insert(String::from("title"), String::from("Programming Language"));
-    fields1.insert(String::from("year"), String::from("2021"));
-    fields1.insert(String::from("journal"), String::from("Rust Journal"));
-    fields1.insert(String::from("volume"), String::from("5"));
-    fields1.insert(String::from("number"), String::from("2"));
-    fields1.insert(String::from("pages"), String::from("100-120"));
-    fields1.insert(String::from("month"), String::from("July"));
-    fields1.insert(String::from("note"), String::from("a sample reference."));
-
-    fields2.insert(String::from("author"), String::from("Doe, Jane"));
-    fields2.insert(String::from("title"), String::from("Introduction to Rust"));
-    fields2.insert(String::from("year"), String::from("2022"));
-    fields2.insert(String::from("journal"), String::from("Rust Gazette"));
-    fields2.insert(String::from("volume"), String::from("7"));
-    fields2.insert(String::from("number"), String::from("1"));
-    fields2.insert(String::from("pages"), String::from("50-70"));
-    fields2.insert(String::from("month"), String::from("January"));
-    fields2.insert(
-        String::from("note"),
-        String::from("Another sample reference."),
-    );
-
-    let reference1: Reference = Reference {
-        key: String::from("smith2021"),
-        fields: fields1,
-    };
-
-    let reference2: Reference = Reference {
-        key: String::from("doe2022"),
-        fields: fields2,
-    };
-
-    return [reference1, reference2];
-}
-
-fn extract_authors(author: &String) -> Vec<Author> {
-    author
-        .split(" and ")
-        .map(|author| author.split(","))
-        .map(|lastname_firstname| {
-            let vec = lastname_firstname.collect::<Vec<&str>>();
-            if let Some((last_name, first_name)) =
-                vec.get(0).and_then(|last_name| match vec.get(1) {
-                    Some(first_name) => Some((last_name, first_name)),
-                    None => None,
-                })
-            {
-                Author::new(first_name.trim().to_owned(), last_name.trim().to_owned())
+fn extract_authors_from_string(authors: &String) -> Vec<Author> {
+    fn parse_split_author(lastname_firstname: Split<&str>) -> Author {
+        let vec = lastname_firstname.collect::<Vec<&str>>();
+        // If, when we split this author on ',' and `collect()` the results, we have at least 2 elements,
+        // that means we have a last name and a first name. In that case, we simply return those as a new author.
+        // ("Doe, John")
+        if vec.len() >= 2 {
+            let last_name = vec[0].trim().to_owned();
+            let first_name = vec[1].trim().to_owned();
+            Author {
+                name: AuthorName::FirstNameLastName {
+                    first_name,
+                    last_name,
+                },
+            }
+        } else {
+            // If not, we proceed by checking if the full name is of the format "John Doe".
+            let names: Vec<&str> = vec[0].split_ascii_whitespace().collect();
+            if names.len() == 2 {
+                // If so, we assume "Doe" is the last name and "John" is the first name.
+                Author::new(names[0].to_string(), names[1].to_string())
             } else {
+                // If the full name is not of the format "John Doe", we fall back on returning an AuthorName::FullName.
                 Author::new_from_full_name(vec[0].to_string())
             }
-        })
+        }
+    }
+
+    authors
+        .split(" and ")
+        .map(|author| author.split(","))
+        .map(parse_split_author)
         .collect()
 }
 
@@ -194,5 +171,90 @@ fn format_author(author: &Author) -> String {
             first_name.chars().next().unwrap_or_default()
         ),
         AuthorName::FullName(ref full_name) => full_name.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::reference::Reference;
+    use std::collections::HashMap;
+
+    fn _example_references() -> [Reference; 2] {
+        let mut fields1: HashMap<String, String> = HashMap::new();
+        let mut fields2: HashMap<String, String> = HashMap::new();
+
+        fields1.insert(String::from("author"), String::from("Smith, John"));
+        fields1.insert(String::from("title"), String::from("Programming Language"));
+        fields1.insert(String::from("year"), String::from("2021"));
+        fields1.insert(String::from("journal"), String::from("Rust Journal"));
+        fields1.insert(String::from("volume"), String::from("5"));
+        fields1.insert(String::from("number"), String::from("2"));
+        fields1.insert(String::from("pages"), String::from("100-120"));
+        fields1.insert(String::from("month"), String::from("July"));
+        fields1.insert(String::from("note"), String::from("a sample reference."));
+
+        fields2.insert(String::from("author"), String::from("Doe, Jane"));
+        fields2.insert(String::from("title"), String::from("Introduction to Rust"));
+        fields2.insert(String::from("year"), String::from("2022"));
+        fields2.insert(String::from("journal"), String::from("Rust Gazette"));
+        fields2.insert(String::from("volume"), String::from("7"));
+        fields2.insert(String::from("number"), String::from("1"));
+        fields2.insert(String::from("pages"), String::from("50-70"));
+        fields2.insert(String::from("month"), String::from("January"));
+        fields2.insert(
+            String::from("note"),
+            String::from("Another sample reference."),
+        );
+
+        let reference1: Reference = Reference {
+            key: String::from("smith2021"),
+            fields: fields1,
+        };
+
+        let reference2: Reference = Reference {
+            key: String::from("doe2022"),
+            fields: fields2,
+        };
+
+        return [reference1, reference2];
+    }
+
+    #[test]
+    fn test_extract_authors() {
+        {
+            let test_author = String::from("Smith, John");
+            let extracted_authors = extract_authors_from_string(&test_author);
+            let expected: Vec<Author> = vec![Author {
+                name: AuthorName::FirstNameLastName {
+                    first_name: String::from("John"),
+                    last_name: String::from("Smith"),
+                },
+            }];
+
+            assert_eq!(expected, extracted_authors);
+        }
+        {
+            let test_author = String::from("John Smith");
+            let extracted_authors = extract_authors_from_string(&test_author);
+            let expected: Vec<Author> = vec![Author {
+                name: AuthorName::FirstNameLastName {
+                    first_name: String::from("John"),
+                    last_name: String::from("Smith"),
+                },
+            }];
+
+            assert_eq!(expected, extracted_authors);
+        }
+        {
+            let test_author = String::from("Juan Pablo Fernández de Calderón García-Iglesias");
+            let extracted_authors = extract_authors_from_string(&test_author);
+            let expected: Vec<Author> = vec![Author {
+                name: AuthorName::FullName(test_author),
+            }];
+
+            assert_eq!(expected, extracted_authors);
+        }
     }
 }
