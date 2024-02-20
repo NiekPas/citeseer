@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::{collections::HashMap, str::Split};
 
 #[derive(Debug)]
@@ -108,12 +109,18 @@ impl Ord for Reference {
 }
 
 fn extract_authors_from_string(authors: &String) -> Vec<Author> {
+    return authors
+        .split(" and ")
+        .map(|author| author.split(","))
+        .map(parse_split_author)
+        .collect();
+
     fn parse_split_author(lastname_firstname: Split<&str>) -> Author {
         let vec = lastname_firstname.collect::<Vec<&str>>();
-        // If, when we split this author on ',' and `collect()` the results, we have at least 2 elements,
+        // If, when we split this author on ',' and `collect()` the results, we have exactly 2 elements,
         // that means we have a last name and a first name. In that case, we simply return those as a new author.
         // ("Doe, John")
-        if vec.len() >= 2 {
+        if vec.len() == 2 {
             let last_name = vec[0].trim().to_owned();
             let first_name = vec[1].trim().to_owned();
             Author {
@@ -123,8 +130,17 @@ fn extract_authors_from_string(authors: &String) -> Vec<Author> {
                 },
             }
         } else {
-            // If not, we proceed by checking if the full name is of the format "John Doe".
+            // If not, we proceed by checking if the full name is of the format "John Doe" or "Marieke M.A. Hendriksen" by splitting on whitespace.
             let names: Vec<&str> = vec[0].split_ascii_whitespace().collect();
+
+            // John Doe
+            // Marieke M.A. Huuu
+            if names.len() > 2 && is_initials(names[1]) {
+                let first_name = names[..names.len() - 1].join(" ");
+                let last_name = names[names.len() - 1].to_owned();
+                return Author::new(first_name, last_name);
+            }
+
             if names.len() == 2 {
                 // If so, we assume "Doe" is the last name and "John" is the first name.
                 Author::new(names[0].to_string(), names[1].to_string())
@@ -135,11 +151,10 @@ fn extract_authors_from_string(authors: &String) -> Vec<Author> {
         }
     }
 
-    authors
-        .split(" and ")
-        .map(|author| author.split(","))
-        .map(parse_split_author)
-        .collect()
+    fn is_initials(str: &str) -> bool {
+        let pattern = Regex::new(r"^[A-Z]\.?[A-Z]?\.?[A-Z]?$").unwrap();
+        pattern.is_match(str)
+    }
 }
 
 pub fn _search_references<'a>(
@@ -252,6 +267,30 @@ mod tests {
             let extracted_authors = extract_authors_from_string(&test_author);
             let expected: Vec<Author> = vec![Author {
                 name: AuthorName::FullName(test_author),
+            }];
+
+            assert_eq!(expected, extracted_authors);
+        }
+        {
+            let test_author = String::from("Marieke M.A. Hendriksen");
+            let extracted_authors = extract_authors_from_string(&test_author);
+            let expected: Vec<Author> = vec![Author {
+                name: AuthorName::FirstNameLastName {
+                    first_name: String::from("Marieke M.A."),
+                    last_name: String::from("Hendriksen"),
+                },
+            }];
+
+            assert_eq!(expected, extracted_authors);
+        }
+        {
+            let test_author = String::from("Hendriksen, Marieke M.A.");
+            let extracted_authors = extract_authors_from_string(&test_author);
+            let expected: Vec<Author> = vec![Author {
+                name: AuthorName::FirstNameLastName {
+                    first_name: String::from("Marieke M.A."),
+                    last_name: String::from("Hendriksen"),
+                },
             }];
 
             assert_eq!(expected, extracted_authors);
