@@ -1,4 +1,3 @@
-use regex::Regex;
 use std::{collections::HashMap, str::Split};
 
 #[derive(Debug)]
@@ -150,10 +149,30 @@ fn extract_authors_from_string(authors: &String) -> Vec<Author> {
             }
         }
     }
+}
 
-    fn is_initials(str: &str) -> bool {
-        let pattern = Regex::new(r"^[A-Z]\.?[A-Z]?\.?[A-Z]?$").unwrap();
-        pattern.is_match(str)
+fn is_initials(str: &str) -> bool {
+    if str == "" {
+        false
+    }
+    // If all characters are uppercase letters, we can assume this is an initial
+    else if str.chars().all(|c| c.is_alphabetic() && c.is_uppercase()) {
+        true
+    } else {
+        // If not, we check if the string is of the form "M.A.B." by looping over it
+        for (i, c) in str.char_indices() {
+            // The current character should be a letter for even indices, and a period ('.') for odd indices.
+            let is_expected_initial_char = if i % 2 == 0 {
+                c.is_alphabetic()
+            } else {
+                c == '.'
+            };
+
+            if !is_expected_initial_char {
+                return false;
+            }
+        }
+        true
     }
 }
 
@@ -294,6 +313,45 @@ mod tests {
             }];
 
             assert_eq!(expected, extracted_authors);
+        }
+    }
+
+    #[test]
+    fn test_is_initials() {
+        {
+            let test_string = String::from("");
+            let result = is_initials(&test_string);
+            assert_eq!(false, result);
+        }
+        {
+            let test_string = String::from("A.B.");
+            let result = is_initials(&test_string);
+            assert_eq!(true, result);
+        }
+        {
+            let test_string = String::from("AB");
+            let result = is_initials(&test_string);
+            assert_eq!(true, result);
+        }
+        {
+            let test_string = String::from("DABS");
+            let result = is_initials(&test_string);
+            assert_eq!(true, result);
+        }
+        {
+            let test_string = String::from("d.a.b.s.");
+            let result = is_initials(&test_string);
+            assert_eq!(true, result);
+        }
+        {
+            let test_string = String::from("Pablo");
+            let result = is_initials(&test_string);
+            assert_eq!(false, result);
+        }
+        {
+            let test_string = String::from("martin");
+            let result = is_initials(&test_string);
+            assert_eq!(false, result);
         }
     }
 }
