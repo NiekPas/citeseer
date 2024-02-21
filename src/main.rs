@@ -1,4 +1,4 @@
-// TODO:
+// To do:
 // - Last name heuristic: if full name is of the form "John Doe", assume first-last order
 // - Make field parsing case-insensitive
 // - Add a search bar
@@ -62,10 +62,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     Char('k') | Up => app.select_previous(),
                     Char('l') | Right => app.next_color(),
                     Char('h') | Left => app.previous_color(),
-                    Char('y') => match app.yank() {
-                        Some(_) => {}
-                        None => {} // TODO
-                    },
+                    Char('y') => _ = app.yank(),
                     _ => {}
                 }
             }

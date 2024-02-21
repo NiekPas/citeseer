@@ -151,7 +151,7 @@ pub fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16) {
         .map(Reference::year)
         .flat_map(|title| match title {
             Some(s) => s.lines(),
-            _ => "".lines(), // TODO I don't know if this is the best approach
+            _ => "".lines(),
         })
         .map(UnicodeWidthStr::width)
         .max()
@@ -162,7 +162,7 @@ pub fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16) {
         .map(Reference::title)
         .flat_map(|title| match title {
             Some(s) => s.lines(),
-            _ => "".lines(), // TODO I don't know if this is the best approach
+            _ => "".lines(),
         })
         .map(UnicodeWidthStr::width)
         .max()
