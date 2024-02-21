@@ -40,8 +40,8 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
         .collect::<Row>()
         .style(header_style)
         .height(1);
-    let items = &mut app.items;
 
+    let items = &mut app.items;
     items.sort_by(compare_authors);
 
     let rows = items.iter().enumerate().map(|(i, reference)| {
