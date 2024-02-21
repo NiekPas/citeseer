@@ -55,6 +55,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
 
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
+                // Reset status text on any key press
+                app.status_text = "";
                 use KeyCode::*;
                 match key.code {
                     Char('q') | Esc => return Ok(()),
@@ -62,7 +64,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     Char('k') | Up => app.select_previous(),
                     Char('l') | Right => app.next_color(),
                     Char('h') | Left => app.previous_color(),
-                    Char('y') => _ = app.yank(),
+                    Char('y') => match app.yank() {
+                        Some(_) => app.status_text = "Bibtex yanked succesfully.",
+                        None => app.status_text = "Yank failed.",
+                    },
                     _ => {}
                 }
             }

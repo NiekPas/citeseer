@@ -43,17 +43,18 @@ impl TableColors {
     }
 }
 
-pub struct App {
+pub struct App<'a> {
     pub state: TableState,
     pub items: Vec<Reference>,
     pub longest_item_lens: (u16, u16, u16, u16), // order is (key, author, year, title)
     pub scroll_state: ScrollbarState,
     pub colors: TableColors,
     pub color_index: usize,
+    pub status_text: &'a str,
 }
 
-impl App {
-    pub fn new() -> App {
+impl<'a> App<'a> {
+    pub fn new() -> App<'a> {
         let path_str = "./test_bibliography.bib";
         let references = parse_file(path_str).expect("Failed to parse file");
 
@@ -64,6 +65,7 @@ impl App {
             colors: TableColors::new(&PALETTES[0]),
             color_index: 0,
             items: references,
+            status_text: "",
         }
     }
 
