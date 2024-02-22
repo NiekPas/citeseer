@@ -14,7 +14,7 @@ use ratatui::{
 use crate::{app::ITEM_HEIGHT, reference::Reference, App};
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
-    let rects = Layout::vertical([Constraint::Min(5), Constraint::Length(3)]).split(frame.size());
+    let rects = Layout::vertical([Constraint::Min(5), Constraint::Length(1)]).split(frame.size());
 
     app.set_colors();
 
@@ -113,14 +113,7 @@ fn render_scrollbar(frame: &mut Frame, app: &mut App, area: Rect) {
 }
 
 fn render_footer(frame: &mut Frame, app: &mut App, area: Rect, text: &str) {
-    let info_footer = Paragraph::new(Line::from(text))
-        .style(Style::new().fg(app.colors.row_fg).bg(app.colors.buffer_bg))
-        .centered()
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::new().fg(app.colors.footer_border_color))
-                .border_type(BorderType::Double),
-        );
+    let info_footer = Paragraph::new(Line::from(format!("\n   {}", text)))
+        .style(Style::new().fg(app.colors.row_fg).bg(app.colors.buffer_bg));
     frame.render_widget(info_footer, area);
 }
