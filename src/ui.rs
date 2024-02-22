@@ -4,10 +4,7 @@ use ratatui::{
     layout::{Constraint, Layout, Margin, Rect},
     style::{Modifier, Style, Stylize},
     text::{Line, Text},
-    widgets::{
-        Block, BorderType, Borders, Cell, HighlightSpacing, Paragraph, Row, Scrollbar,
-        ScrollbarOrientation, Table,
-    },
+    widgets::{Cell, HighlightSpacing, Paragraph, Row, Scrollbar, ScrollbarOrientation, Table},
     Frame,
 };
 
