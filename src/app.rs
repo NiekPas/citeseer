@@ -53,7 +53,7 @@ pub struct App {
     pub status_text: String,
 }
 
-impl<'a> App {
+impl App {
     pub fn new() -> App {
         let path_str = "./test_bibliography.bib";
         let bibtex_string = fs::read_to_string(path_str)
