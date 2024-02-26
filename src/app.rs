@@ -56,7 +56,8 @@ pub struct App {
 impl<'a> App {
     pub fn new() -> App {
         let path_str = "./test_bibliography.bib";
-        let references = parse_file(path_str).expect("Failed to parse file");
+        let bibtex_string = fs::read_to_string(path_str).expect("Failed to open file");
+        let references = parse_bibtex(bibtex_string).expect("Failed to parse file");
 
         App {
             state: TableState::default().with_selected(0),
@@ -122,11 +123,6 @@ impl<'a> App {
             None
         }
     }
-}
-
-fn parse_file(path: &str) -> Result<Vec<Reference>, String> {
-    let bibtex_string = fs::read_to_string(path).expect("Failed to open file");
-    parse_bibtex(bibtex_string)
 }
 
 pub fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16) {
