@@ -56,8 +56,10 @@ pub struct App {
 impl<'a> App {
     pub fn new() -> App {
         let path_str = "./test_bibliography.bib";
-        let bibtex_string = fs::read_to_string(path_str).expect("Failed to open file");
-        let references = parse_bibtex(bibtex_string).expect("Failed to parse file");
+        let bibtex_string = fs::read_to_string(path_str)
+            .expect(format!("Failed to open file: {}", path_str).as_str());
+        let references = parse_bibtex(bibtex_string)
+            .expect(format!("Failed to parse file: {}", path_str).as_str());
 
         App {
             state: TableState::default().with_selected(0),
