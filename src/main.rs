@@ -49,14 +49,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
+fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
     loop {
         terminal.draw(|frame| ui(frame, &mut app))?;
 
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
                 // Reset status text on any key press
-                app.status_text = "";
+                app.status_text = String::default();
                 use KeyCode::*;
                 match key.code {
                     Char('q') | Esc => return Ok(()),
@@ -65,8 +65,11 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     Char('l') | Right => app.next_color(),
                     Char('h') | Left => app.previous_color(),
                     Char('y') => match app.yank() {
-                        Some(_) => app.status_text = "Bibtex yanked succesfully.",
-                        None => app.status_text = "Yank failed.",
+                        Some(reference) => {
+                            app.status_text =
+                                format!("Copied {} to clipboard as BibTeX.", reference.key);
+                        }
+                        None => app.status_text = String::from("Yank failed."),
                     },
                     _ => {}
                 }

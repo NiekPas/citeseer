@@ -43,18 +43,18 @@ impl TableColors {
     }
 }
 
-pub struct App<'a> {
+pub struct App {
     pub state: TableState,
     pub items: Vec<Reference>,
     pub longest_item_lens: (u16, u16, u16, u16), // order is (key, author, year, title)
     pub scroll_state: ScrollbarState,
     pub colors: TableColors,
     pub color_index: usize,
-    pub status_text: &'a str,
+    pub status_text: String,
 }
 
-impl<'a> App<'a> {
-    pub fn new() -> App<'a> {
+impl<'a> App {
+    pub fn new() -> App {
         let path_str = "./test_bibliography.bib";
         let references = parse_file(path_str).expect("Failed to parse file");
 
@@ -65,7 +65,7 @@ impl<'a> App<'a> {
             colors: TableColors::new(&PALETTES[0]),
             color_index: 0,
             items: references,
-            status_text: "",
+            status_text: String::default(),
         }
     }
 
@@ -112,11 +112,15 @@ impl<'a> App<'a> {
         self.colors = TableColors::new(&PALETTES[self.color_index])
     }
 
-    pub fn yank(&self) -> Option<()> {
+    pub fn yank(&self) -> Option<&Reference> {
         let currently_selected_index = self.state.selected()?;
         let currently_selected_reference: &Reference = self.items.get(currently_selected_index)?;
         let reference_bibtex = currently_selected_reference.to_bibtex();
-        cli_clipboard::set_contents(reference_bibtex).ok()
+        if let Ok(_) = cli_clipboard::set_contents(reference_bibtex) {
+            Some(currently_selected_reference.to_owned())
+        } else {
+            None
+        }
     }
 }
 

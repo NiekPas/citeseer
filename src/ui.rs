@@ -19,7 +19,7 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
 
     render_scrollbar(frame, app, rects[0]);
 
-    render_footer(frame, app, rects[1], app.status_text);
+    render_footer(frame, app, rects[1], app.status_text.clone());
 }
 
 fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
@@ -109,7 +109,7 @@ fn render_scrollbar(frame: &mut Frame, app: &mut App, area: Rect) {
     );
 }
 
-fn render_footer(frame: &mut Frame, app: &mut App, area: Rect, text: &str) {
+fn render_footer(frame: &mut Frame, app: &mut App, area: Rect, text: String) {
     let info_footer = Paragraph::new(Line::from(format!("\n   {}", text)))
         .style(Style::new().fg(app.colors.row_fg).bg(app.colors.buffer_bg));
     frame.render_widget(info_footer, area);
