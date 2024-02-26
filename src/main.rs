@@ -67,7 +67,7 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Resu
                     Char('y') => match app.yank() {
                         Some(reference) => {
                             app.status_text =
-                                format!("Copied {} to clipboard as BibTeX.", reference.key);
+                                format!("Copied {} to the clipboard as BibTeX.", reference.key);
                         }
                         None => app.status_text = String::from("Yank failed."),
                     },
