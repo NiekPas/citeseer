@@ -26,6 +26,10 @@ pub fn parse_bibtex(bibtex: String) -> Result<Vec<Reference>, String> {
         // Otherwise, we're parsing a field, which is the form "author = {hello}"
         } else {
             let field = line.split('=').collect::<Vec<&str>>();
+            // If splitting on '=' failed, skip this field
+            if field.len() < 2 {
+                continue;
+            }
             let key = field[0].trim().to_string();
             let value = strip_optional_suffix(
                 strip_optional_suffix(strip_optional_prefix(field[1].trim(), "{"), ","),
