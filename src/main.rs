@@ -9,7 +9,7 @@ mod parse;
 mod reference;
 mod ui;
 
-use std::{error::Error, fs, io, process::exit};
+use std::{error::Error, fs, io, path::PathBuf, process::exit};
 
 use app::App;
 use crossterm::{
@@ -24,10 +24,17 @@ use ui::ui;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = std::env::args().collect::<Vec<String>>();
+    // 1. Try to get path from args
+    // 2. Try to get path from ~/.citeseer
+    // 3. Exit with message
     let path_str: String = get_path_str(&args).unwrap_or_else(|| {
-        println!("Please provide a path to a .bib file.");
-        exit(1)
+        get_last_bibliography_file().unwrap_or_else(|| {
+            println!("Please provide a path to a .bib file.");
+            exit(1);
+        })
     });
+
+    set_last_bibliography_file(&path_str);
 
     let bibtex_string =
         fs::read_to_string(&path_str).expect(format!("Failed to open file: {}", path_str).as_str());
@@ -69,6 +76,17 @@ fn get_path_str(args: &Vec<String>) -> Option<String> {
     Some(args[1].clone())
 }
 
+fn get_last_bibliography_file() -> Option<String> {
+    let path = settings_path()?;
+    let contents = fs::read_to_string(path).ok()?;
+    Some(contents)
+}
+
+fn set_last_bibliography_file(bibliography_path: &String) -> Option<()> {
+    let path = settings_path()?;
+    fs::write(path, bibliography_path).ok()
+}
+
 fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
     loop {
         terminal.draw(|frame| ui(frame, &mut app))?;
@@ -96,4 +114,11 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Resu
             }
         }
     }
+}
+
+fn settings_path() -> Option<PathBuf> {
+    let mut path = dirs::home_dir()?;
+    path.push(".citeseer");
+    path.push("settings");
+    return Some(path);
 }
