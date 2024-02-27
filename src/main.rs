@@ -9,7 +9,7 @@ mod parse;
 mod reference;
 mod ui;
 
-use std::{error::Error, io};
+use std::{error::Error, fs, io, process::exit};
 
 use app::App;
 use crossterm::{
@@ -18,10 +18,23 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
+use parse::parse_bibtex;
 use ratatui::prelude::*;
 use ui::ui;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let args = std::env::args().collect::<Vec<String>>();
+    let path_str: String = get_path_str(&args).unwrap_or_else(|| {
+        println!("Please provide a path to a .bib file.");
+        exit(1)
+    });
+
+    let bibtex_string =
+        fs::read_to_string(&path_str).expect(format!("Failed to open file: {}", path_str).as_str());
+
+    let references =
+        parse_bibtex(bibtex_string).expect(format!("Failed to parse file: {}", path_str).as_str());
+
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -30,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let app = App::new();
+    let app = App::new(references);
     let res = run_app(&mut terminal, app);
 
     // restore terminal
@@ -47,6 +60,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
+}
+
+fn get_path_str(args: &Vec<String>) -> Option<String> {
+    if args.len() == 1 {
+        return None;
+    }
+    Some(args[1].clone())
 }
 
 fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {

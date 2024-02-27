@@ -1,12 +1,10 @@
-use std::fs;
-
 use ratatui::{
     style::{palette::tailwind, Color},
     widgets::{ScrollbarState, TableState},
 };
 use unicode_width::UnicodeWidthStr;
 
-use crate::{parse::parse_bibtex, reference::Reference};
+use crate::reference::Reference;
 
 const PALETTES: [tailwind::Palette; 4] = [
     tailwind::BLUE,
@@ -54,13 +52,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new() -> App {
-        let path_str = "./test_bibliography.bib";
-        let bibtex_string = fs::read_to_string(path_str)
-            .expect(format!("Failed to open file: {}", path_str).as_str());
-        let references = parse_bibtex(bibtex_string)
-            .expect(format!("Failed to parse file: {}", path_str).as_str());
-
+    pub fn new(references: Vec<Reference>) -> App {
         App {
             state: TableState::default().with_selected(0),
             longest_item_lens: constraint_len_calculator(&references),
