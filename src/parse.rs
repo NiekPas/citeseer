@@ -8,18 +8,22 @@ pub fn parse_bibtex(bibtex: String) -> Result<Vec<Reference>, String> {
     let mut key: String = String::new();
 
     for line in bibtex.lines() {
+        // Skip blank lines
         if line.trim().is_empty() {
             continue;
         }
+        // If the line starts with '@', we're parsing a key
         if line.starts_with('@') {
             key = line.split('{').collect::<Vec<&str>>()[1]
                 .split(',')
                 .collect::<Vec<&str>>()[0]
                 .to_string();
+        // If the line starts with '}', we're done parsing this reference and can move on
         } else if line.starts_with('}') {
             let reference = Reference::new(key.clone(), fields.clone());
             references.push(reference);
             fields.clear();
+        // Otherwise, we're parsing a field, which is the form "author = {hello}"
         } else {
             let field = line.split('=').collect::<Vec<&str>>();
             let key = field[0].trim().to_string();
