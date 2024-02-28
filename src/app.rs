@@ -41,6 +41,21 @@ impl TableColors {
     }
 }
 
+#[derive(Clone)]
+pub struct StatusBarInput {
+    // The current input
+    pub input: String,
+    // The position of the cursor in the input
+    pub cursor_position: usize,
+}
+
+pub enum StatusBar {
+    // Displaying a message
+    Message(String),
+    // Receiving user input
+    Input(StatusBarInput),
+}
+
 pub struct App {
     pub state: TableState,
     pub items: Vec<Reference>,
@@ -48,7 +63,7 @@ pub struct App {
     pub scroll_state: ScrollbarState,
     pub colors: TableColors,
     pub color_index: usize,
-    pub status_text: String,
+    pub status_bar: StatusBar,
 }
 
 impl App {
@@ -60,7 +75,7 @@ impl App {
             colors: TableColors::new(&PALETTES[0]),
             color_index: 0,
             items: references,
-            status_text: String::default(),
+            status_bar: StatusBar::Message(String::default()),
         }
     }
 

@@ -1,6 +1,5 @@
 // To do:
 // - Make field parsing case-insensitive
-// - Add a search bar
 
 mod app;
 mod parse;
@@ -18,7 +17,12 @@ use crossterm::{
 
 use parse::parse_bibtex;
 use ratatui::prelude::*;
-use ui::ui;
+use ui::{delete_char, ui};
+
+use crate::{
+    app::{StatusBar, StatusBarInput},
+    ui::enter_char,
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = std::env::args().collect::<Vec<String>>();
@@ -88,26 +92,21 @@ fn set_last_bibliography_file(bibliography_path: &String) -> Option<()> {
 fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
     loop {
         terminal.draw(|frame| ui(frame, &mut app))?;
-
+        // TODO make input a general widget, instead of putting it in ui
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
-                // Reset status text on any key press
-                app.status_text = String::default();
-                use KeyCode::*;
-                match key.code {
-                    Char('q') | Esc => return Ok(()),
-                    Char('j') | Down => app.select_next(),
-                    Char('k') | Up => app.select_previous(),
-                    Char('l') | Right => app.next_color(),
-                    Char('h') | Left => app.previous_color(),
-                    Char('y') => match app.yank() {
-                        Some(reference) => {
-                            app.status_text =
-                                format!("Copied {} to the clipboard as BibTeX.", reference.key);
+                match app.status_bar {
+                    // If the status bar is displaying a message, we are in the state where
+                    // we should handle keypresses as key commands (h, j, k, q, etc.)
+                    StatusBar::Message(_) => {
+                        if handle_keyboard_command(&mut app, key.code) {
+                            return Ok(());
                         }
-                        None => app.status_text = String::from("Yank failed."),
-                    },
-                    _ => {}
+                    }
+                    // Otherwise, we should handle keypresses as status bar input
+                    StatusBar::Input(ref status_bar_input) => {
+                        app.status_bar = handle_status_bar_input(status_bar_input, key)
+                    }
                 }
             }
         }
@@ -119,4 +118,53 @@ fn settings_path() -> Option<PathBuf> {
     path.push(".citeseer");
     path.push("settings");
     return Some(path);
+}
+
+fn handle_keyboard_command(app: &mut App, key_code: KeyCode) -> bool {
+    use KeyCode::*;
+    if key_code == Char('q') {
+        return true;
+    }
+    match key_code {
+        Char('j') | Down => app.select_next(),
+        Char('k') | Up => app.select_previous(),
+        Char('l') | Right => app.next_color(),
+        Char('h') | Left => app.previous_color(),
+        Char('y') => match app.yank() {
+            Some(reference) => {
+                app.status_bar = StatusBar::Message(format!(
+                    "Copied {} to the clipboard as BibTeX.",
+                    reference.key
+                ));
+            }
+            None => app.status_bar = StatusBar::Message(String::from("Yank failed.")),
+        },
+        Char('/') => {
+            let status_bar_input = StatusBarInput {
+                input: String::from("/"),
+                cursor_position: 1, // The starting position is 1 because the search field always contains a '/'
+            };
+
+            app.status_bar = StatusBar::Input(status_bar_input);
+        }
+        _ => {}
+    }
+    false
+}
+
+fn handle_status_bar_input(status_bar_input: &StatusBarInput, key: event::KeyEvent) -> StatusBar {
+    use KeyCode::*;
+    match key.code {
+        // Backspace removes characters
+        Backspace => {
+            let sb = delete_char(status_bar_input);
+            StatusBar::Input(sb)
+        }
+        // ESC resets the status bar to displaying a (blank) message
+        Esc => StatusBar::Message(String::default()),
+        // Any other char should be entered into the input field
+        Char(c) => StatusBar::Input(enter_char(status_bar_input, c)),
+        // No-op
+        _ => StatusBar::Input(status_bar_input.clone()),
+    }
 }
