@@ -179,7 +179,7 @@ pub fn delete_char(status_bar_input: &StatusBarInput) -> StatusBarInput {
         // Put all characters together except the selected one.
         // By leaving the selected one out, it is forgotten and therefore deleted.
         let next_input: String = before_char_to_delete.chain(after_char_to_delete).collect();
-        let next_cursor_position = move_cursor_left(&status_bar_input, current_index - 1);
+        let next_cursor_position = move_cursor_left(&status_bar_input, current_index);
         let next_status_bar_input = StatusBarInput {
             cursor_position: next_cursor_position,
             input: next_input,
