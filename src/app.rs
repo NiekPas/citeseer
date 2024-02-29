@@ -63,7 +63,7 @@ pub struct App {
     pub state: TableState,
     pub items: Vec<Reference>,
     pub longest_item_lens: (u16, u16, u16, u16), // order is (key, author, year, title)
-    pub scroll_state: ScrollbarState,
+    pub vertical_scroll_state: ScrollbarState,
     pub colors: TableColors,
     pub color_index: usize,
     pub status_bar: StatusBar,
@@ -75,7 +75,7 @@ impl App {
         App {
             state: TableState::default().with_selected(0),
             longest_item_lens: constraint_len_calculator(&references),
-            scroll_state: ScrollbarState::new((references.len() - 1) * ITEM_HEIGHT),
+            vertical_scroll_state: ScrollbarState::new((references.len() - 1) * ITEM_HEIGHT),
             colors: TableColors::new(&PALETTES[0]),
             color_index: 0,
             items: references,
@@ -96,7 +96,7 @@ impl App {
             None => 0,
         };
         self.state.select(Some(i));
-        self.scroll_state = self.scroll_state.position(i * ITEM_HEIGHT);
+        self.vertical_scroll_state = self.vertical_scroll_state.position(i * ITEM_HEIGHT);
     }
 
     pub fn select_previous(&mut self) {
@@ -111,7 +111,7 @@ impl App {
             None => 0,
         };
         self.state.select(Some(i));
-        self.scroll_state = self.scroll_state.position(i * ITEM_HEIGHT);
+        self.vertical_scroll_state = self.vertical_scroll_state.position(i * ITEM_HEIGHT);
     }
 
     pub fn next_color(&mut self) {

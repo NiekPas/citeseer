@@ -115,7 +115,7 @@ fn render_scrollbar(frame: &mut Frame, app: &mut App, area: Rect) {
             vertical: 1,
             horizontal: 1,
         }),
-        &mut app.scroll_state,
+        &mut app.vertical_scroll_state,
     );
 }
 
