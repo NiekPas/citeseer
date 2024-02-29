@@ -142,13 +142,13 @@ impl App {
     pub fn search(&mut self) {
         fn reference_contains(reference: &Reference, pattern: &str) -> bool {
             let title_contains_search_string: bool = match reference.title() {
-                Some(title) => title.contains(pattern),
+                Some(title) => title.to_lowercase().contains(&pattern.to_lowercase()),
                 None => false,
             };
             let fields_contain_search_string: bool = reference
                 .fields
                 .iter()
-                .any(|(field, value)| value.contains(pattern));
+                .any(|(_field, value)| value.to_lowercase().contains(&pattern.to_lowercase()));
 
             title_contains_search_string || fields_contain_search_string
         }
