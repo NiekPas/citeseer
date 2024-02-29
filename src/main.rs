@@ -104,8 +104,8 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Resu
                         }
                     }
                     // Otherwise, we should handle keypresses as status bar input
-                    StatusBar::Input(ref status_bar_input) => {
-                        app.status_bar = handle_status_bar_input(status_bar_input, key)
+                    StatusBar::Input(_) => {
+                        app.status_bar = handle_status_bar_input(&mut app, key);
                     }
                 }
             }
@@ -152,19 +152,29 @@ fn handle_keyboard_command(app: &mut App, key_code: KeyCode) -> bool {
     false
 }
 
-fn handle_status_bar_input(status_bar_input: &StatusBarInput, key: event::KeyEvent) -> StatusBar {
-    use KeyCode::*;
-    match key.code {
-        // Backspace removes characters
-        Backspace => {
-            let sb = delete_char(status_bar_input);
-            StatusBar::Input(sb)
+fn handle_status_bar_input(app: &mut App, key: event::KeyEvent) -> StatusBar {
+    match &app.status_bar {
+        StatusBar::Message(_) => app.status_bar.clone(), // This can never happen
+        StatusBar::Input(status_bar_input) => {
+            use KeyCode::*;
+            match key.code {
+                // Backspace removes characters
+                Backspace => {
+                    let sb = delete_char(&status_bar_input);
+                    StatusBar::Input(sb)
+                }
+                // ESC resets the status bar to displaying a (blank) message
+                Esc => StatusBar::Message(String::default()),
+                // Enter performs the search
+                Enter => {
+                    app.search();
+                    StatusBar::Message(String::default())
+                }
+                // Any other char should be entered into the input field
+                Char(c) => StatusBar::Input(enter_char(&status_bar_input, c)),
+                // No-op
+                _ => StatusBar::Input(status_bar_input.clone()),
+            }
         }
-        // ESC resets the status bar to displaying a (blank) message
-        Esc => StatusBar::Message(String::default()),
-        // Any other char should be entered into the input field
-        Char(c) => StatusBar::Input(enter_char(status_bar_input, c)),
-        // No-op
-        _ => StatusBar::Input(status_bar_input.clone()),
     }
 }

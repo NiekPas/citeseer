@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::Split};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Reference {
     pub key: String,
     pub fields: HashMap<String, String>,

@@ -49,6 +49,7 @@ pub struct StatusBarInput {
     pub cursor_position: usize,
 }
 
+#[derive(Clone)]
 pub enum StatusBar {
     // Displaying a message
     Message(String),
@@ -64,6 +65,7 @@ pub struct App {
     pub colors: TableColors,
     pub color_index: usize,
     pub status_bar: StatusBar,
+    pub search_results: Vec<Reference>,
 }
 
 impl App {
@@ -76,6 +78,7 @@ impl App {
             color_index: 0,
             items: references,
             status_bar: StatusBar::Message(String::default()),
+            search_results: Vec::new(),
         }
     }
 
@@ -127,10 +130,41 @@ impl App {
         let currently_selected_reference: &Reference = self.items.get(currently_selected_index)?;
         let reference_bibtex = currently_selected_reference.to_bibtex();
         if let Ok(_) = cli_clipboard::set_contents(reference_bibtex) {
-            Some(currently_selected_reference.to_owned())
+            Some(currently_selected_reference)
         } else {
             None
         }
+    }
+
+    // TODO write tests for this function
+    pub fn search(&mut self) {
+        fn reference_contains(reference: &Reference, pattern: &str) -> bool {
+            let title_contains_search_string: bool = match reference.title() {
+                Some(title) => title.contains(pattern),
+                None => false,
+            };
+            let fields_contain_search_string: bool = reference
+                .fields
+                .iter()
+                .any(|(field, value)| value.contains(pattern));
+
+            title_contains_search_string || fields_contain_search_string
+        }
+
+        let search_results: Vec<Reference> = match &self.status_bar {
+            StatusBar::Message(_) => Vec::new(),
+            StatusBar::Input(status_bar_input) => {
+                let search_value = status_bar_input.input.as_str();
+
+                self.items
+                    .iter()
+                    .filter(|reference| reference_contains(*reference, search_value))
+                    .cloned()
+                    .collect()
+            }
+        };
+
+        self.search_results = search_results;
     }
 }
 
