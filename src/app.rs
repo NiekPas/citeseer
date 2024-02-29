@@ -154,7 +154,7 @@ impl App {
         let search_results: Vec<Reference> = match &self.status_bar {
             StatusBar::Message(_) => Vec::new(),
             StatusBar::Input(status_bar_input) => {
-                let search_value = status_bar_input.input.as_str();
+                let search_value = status_bar_input.input.trim_start_matches('/');
 
                 self.items
                     .iter()
