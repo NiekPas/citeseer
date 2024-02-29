@@ -159,7 +159,7 @@ pub fn enter_char(status_bar_input: &StatusBarInput, new_char: char) -> StatusBa
 }
 
 pub fn delete_char(status_bar_input: &StatusBarInput) -> StatusBarInput {
-    let cursor_is_not_leftmost = status_bar_input.cursor_position != 1;
+    let cursor_is_not_leftmost = status_bar_input.cursor_position > 1;
     if cursor_is_not_leftmost {
         // Method "remove" is not used on the saved text for deleting the selected char.
         // Reason: Using remove on String works on bytes instead of the chars.
