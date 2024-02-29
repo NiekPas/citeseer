@@ -50,7 +50,13 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
             0 => app.colors.normal_row_color,
             _ => app.colors.alt_row_color,
         };
-        let row_style = Style::new().fg(app.colors.row_fg).bg(color);
+
+        let is_search_result = app.search_results.contains(reference);
+        let row_style = if is_search_result {
+            Style::new().fg(app.colors.search_result_fg).bg(color)
+        } else {
+            Style::new().fg(app.colors.row_fg).bg(color)
+        };
 
         reference
             .as_array()
