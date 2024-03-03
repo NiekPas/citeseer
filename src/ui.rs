@@ -71,32 +71,32 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
     });
 
     let bar = " █ ";
-    let table = Table::new(
-        rows,
-        [
-            // key
-            // This is somewhat arbitrary, but having the column be slightly less wide than to fit is fine for keys,
-            // since we normally don't need to see the entire key anyway.
-            Constraint::Min(app.longest_item_lens.0 - 6),
-            // For the author, we use a percentage, because the longest item is going to be like 300 characters
-            Constraint::Percentage(25),
-            // Years are almost always 4 digits long, so setting using `Length` to 6 is fine here.
-            // An exception to this is the format "1985 [1935]", which will not be entirely visible.
-            Constraint::Length(6),
-            // Let title take up the rest of the space
-            Constraint::Fill(1),
-        ],
-    )
-    .header(header)
-    .highlight_style(selected_style)
-    .highlight_symbol(Text::from(vec![
-        "".into(),
-        bar.into(),
-        bar.into(),
-        "".into(),
-    ]))
-    .bg(app.colors.buffer_bg)
-    .highlight_spacing(HighlightSpacing::Always);
+    let header_constraints: [Constraint; HEADERS.len()] = [
+        // key
+        // This is somewhat arbitrary, but having the column be slightly less wide than to fit is fine for keys,
+        // since we normally don't need to see the entire key anyway.
+        Constraint::Min(app.longest_item_lens.0 - 6),
+        //
+        Constraint::Length(app.longest_item_lens.1),
+        // For the author, we use a percentage, because the longest item is going to be like 300 characters
+        Constraint::Percentage(25),
+        // Years are almost always 4 digits long, so setting using `Length` to 6 is fine here.
+        // An exception to this is the format "1985 [1935]", which will not be entirely visible.
+        Constraint::Length(6),
+        // Let title take up the rest of the space
+        Constraint::Fill(1),
+    ];
+    let table = Table::new(rows, header_constraints)
+        .header(header)
+        .highlight_style(selected_style)
+        .highlight_symbol(Text::from(vec![
+            "".into(),
+            bar.into(),
+            bar.into(),
+            "".into(),
+        ]))
+        .bg(app.colors.buffer_bg)
+        .highlight_spacing(HighlightSpacing::Always);
     frame.render_stateful_widget(table, area, &mut app.state);
 }
 

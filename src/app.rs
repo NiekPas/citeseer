@@ -63,7 +63,7 @@ pub enum StatusBar {
 pub struct App {
     pub state: TableState,
     pub items: Vec<Reference>,
-    pub longest_item_lens: (u16, u16, u16, u16), // order is (key, author, year, title)
+    pub longest_item_lens: (u16, u16, u16, u16, u16), // order is (key, author, year, title)
     pub vertical_scroll_state: ScrollbarState,
     pub colors: TableColors,
     pub color_index: usize,
@@ -171,7 +171,7 @@ impl App {
     }
 }
 
-pub fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16) {
+pub fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16, u16) {
     fn make_lines(title: Option<String>) -> Vec<String> {
         match title {
             Some(string) => string.lines().map(|s| s.to_owned()).collect(),
@@ -182,6 +182,13 @@ pub fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16) {
     let key_len = items
         .iter()
         .map(Reference::key)
+        .map(UnicodeWidthStr::width)
+        .max()
+        .unwrap_or(0);
+
+    let reference_type_len = items
+        .iter()
+        .map(Reference::reference_type)
         .map(UnicodeWidthStr::width)
         .max()
         .unwrap_or(0);
@@ -218,6 +225,7 @@ pub fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16) {
 
     (
         key_len as u16,
+        reference_type_len as u16,
         author_len as u16,
         year_len as u16,
         title_len as u16,

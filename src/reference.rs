@@ -1,8 +1,6 @@
-use std::{
-    collections::HashMap,
-    fmt::Display,
-    str::{FromStr, Split},
-};
+use std::{collections::HashMap, str::Split};
+
+use unicode_width::UnicodeWidthStr;
 
 use crate::app::HEADERS;
 
@@ -68,6 +66,16 @@ impl TryFrom<&str> for ReferenceType {
             "unpublished" => Ok(ReferenceType::Unpublished),
             _ => Err(format!("Failed to parse reference type: {}", value).to_owned()),
         }
+    }
+}
+
+impl UnicodeWidthStr for ReferenceType {
+    fn width<'a>(&'a self) -> usize {
+        self.to_string().width()
+    }
+
+    fn width_cjk<'a>(&'a self) -> usize {
+        self.to_string().width_cjk()
     }
 }
 
@@ -150,7 +158,7 @@ impl Reference {
             .map(|authors| authors.join("; "))
     }
 
-    fn reference_type(&self) -> &ReferenceType {
+    pub fn reference_type(&self) -> &ReferenceType {
         &self.reference_type
     }
 
