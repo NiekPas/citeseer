@@ -191,7 +191,5 @@ pub fn delete_char(status_bar_input: &StatusBarInput) -> StatusBarInput {
 }
 
 pub fn clamp_cursor(status_bar_input: &StatusBarInput, new_cursor_pos: usize) -> usize {
-    let len = status_bar_input.input.len();
-    //println!("len of status bar input: {}", len);
     new_cursor_pos.clamp(0, status_bar_input.input.len() + 1)
 }
