@@ -1,9 +1,74 @@
-use std::{collections::HashMap, str::Split};
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    str::{FromStr, Split},
+};
+
+use crate::app::HEADERS;
 
 #[derive(Debug, Clone)]
 pub struct Reference {
     pub key: String,
+    pub reference_type: ReferenceType,
     pub fields: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone)]
+pub enum ReferenceType {
+    Article,
+    Book,
+    InBook,
+    InCollection,
+    InProceedings,
+    Manual,
+    Mastersthesis,
+    Misc,
+    Phdthesis,
+    Proceedings,
+    Techreport,
+    Unpublished,
+}
+
+impl ToString for ReferenceType {
+    fn to_string(&self) -> String {
+        match self {
+            ReferenceType::Article => String::from("Article"),
+            ReferenceType::Book => String::from("Book"),
+            ReferenceType::InBook => String::from("InBook"),
+            ReferenceType::InCollection => String::from("InCollection"),
+            ReferenceType::InProceedings => String::from("InProceedings"),
+            ReferenceType::Manual => String::from("Manual"),
+            ReferenceType::Mastersthesis => String::from("Mastersthesis"),
+            ReferenceType::Misc => String::from("Misc"),
+            ReferenceType::Phdthesis => String::from("Phdthesis"),
+            ReferenceType::Proceedings => String::from("Proceedings"),
+            ReferenceType::Techreport => String::from("Techreport"),
+            ReferenceType::Unpublished => String::from("Unpublished"),
+        }
+    }
+}
+
+impl TryFrom<&str> for ReferenceType {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "article" => Ok(ReferenceType::Article),
+            "book" => Ok(ReferenceType::Book),
+            "inbook" => Ok(ReferenceType::InBook),
+            "incollection" => Ok(ReferenceType::InCollection),
+            "inproceedings" => Ok(ReferenceType::InProceedings),
+            "manual" => Ok(ReferenceType::Manual),
+            "mastersthesis" => Ok(ReferenceType::Mastersthesis),
+            "misc" => Ok(ReferenceType::Misc),
+            "phdthesis" => Ok(ReferenceType::Phdthesis),
+            "proceedings" => Ok(ReferenceType::Proceedings),
+            "techreport" => Ok(ReferenceType::Techreport),
+            "report" => Ok(ReferenceType::Techreport),
+            "unpublished" => Ok(ReferenceType::Unpublished),
+            _ => Err(format!("Failed to parse reference type: {}", value).to_owned()),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -38,16 +103,31 @@ impl Author {
 }
 
 impl Reference {
-    pub fn new(key: String, fields: HashMap<String, String>) -> Reference {
-        Reference { key, fields }
+    pub fn new(
+        key: String,
+        reference_type: ReferenceType,
+        fields: HashMap<String, String>,
+    ) -> Reference {
+        Reference {
+            key,
+            fields,
+            reference_type,
+        }
     }
 
-    pub fn as_array(&self) -> [Option<String>; 4] {
+    pub fn as_array(&self) -> [Option<String>; HEADERS.len()] {
         let title: Option<String> = self.fields.get("title").cloned();
         let author: Option<String> = self.formatted_author().to_owned();
         let year: Option<String> = self.fields.get("year").cloned();
+        let entry_type = self.reference_type().to_string();
 
-        [Some(self.key.to_owned()), author, year, title]
+        [
+            Some(self.key.to_owned()),
+            Some(entry_type),
+            author,
+            year,
+            title,
+        ]
     }
 
     pub fn key(&self) -> &str {
@@ -68,6 +148,10 @@ impl Reference {
             .map(extract_authors_from_string)
             .map(|authors| authors.iter().map(format_author).collect::<Vec<String>>())
             .map(|authors| authors.join("; "))
+    }
+
+    fn reference_type(&self) -> &ReferenceType {
+        &self.reference_type
     }
 
     pub fn to_bibtex(&self) -> String {

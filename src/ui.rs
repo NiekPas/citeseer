@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 use crate::{
-    app::{StatusBar, StatusBarInput, ITEM_HEIGHT},
+    app::{StatusBar, StatusBarInput, HEADERS, ITEM_HEIGHT},
     reference::Reference,
     App,
 };
@@ -34,7 +34,7 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
         .add_modifier(Modifier::REVERSED)
         .fg(app.colors.selected_style_fg);
 
-    let header = ["Key", "Authors", "Year", "Title"]
+    let header = HEADERS
         .iter()
         .cloned()
         .map(Cell::from)
@@ -74,7 +74,6 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
     let table = Table::new(
         rows,
         [
-            // + 1 is for padding.
             // key
             // This is somewhat arbitrary, but having the column be slightly less wide than to fit is fine for keys,
             // since we normally don't need to see the entire key anyway.

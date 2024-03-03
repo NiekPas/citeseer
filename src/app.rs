@@ -14,6 +14,7 @@ const PALETTES: [tailwind::Palette; 4] = [
 ];
 
 pub const ITEM_HEIGHT: usize = 1;
+pub const HEADERS: [&str; 5] = ["Key", "Type", "Authors", "Year", "Title"];
 
 pub struct TableColors {
     pub buffer_bg: Color,
