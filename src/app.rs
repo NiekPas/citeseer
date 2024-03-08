@@ -4,7 +4,7 @@ use ratatui::{
 };
 use unicode_width::UnicodeWidthStr;
 
-use crate::reference::Reference;
+use crate::reference::{FieldType, Reference};
 
 const PALETTES: [tailwind::Palette; 4] = [
     tailwind::BLUE,
@@ -14,7 +14,6 @@ const PALETTES: [tailwind::Palette; 4] = [
 ];
 
 pub const ITEM_HEIGHT: usize = 1;
-pub const HEADERS: [&str; 5] = ["Key", "Type", "Authors", "Year", "Title"];
 
 pub struct TableColors {
     pub buffer_bg: Color,
@@ -65,6 +64,8 @@ pub struct App {
     pub items: Vec<Reference>,
     pub longest_item_lens: (u16, u16, u16, u16, u16), // order is (key, author, year, title)
     pub vertical_scroll_state: ScrollbarState,
+    pub horizontal_scroll_state: ScrollbarState,
+    pub visible_headers: Vec<FieldType>,
     pub colors: TableColors,
     pub color_index: usize,
     pub status_bar: StatusBar,
@@ -73,10 +74,16 @@ pub struct App {
 
 impl App {
     pub fn new(references: Vec<Reference>) -> App {
+        let longest_item_lens = constraint_len_calculator(&references);
+        let visible_headers = vec![Key, Type, Author, Year, Title];
+        use FieldType::*;
+
         App {
             state: TableState::default().with_selected(0),
-            longest_item_lens: constraint_len_calculator(&references),
+            longest_item_lens,
             vertical_scroll_state: ScrollbarState::new((references.len() - 1) * ITEM_HEIGHT),
+            horizontal_scroll_state: ScrollbarState::new(visible_headers.len()),
+            visible_headers,
             colors: TableColors::new(&PALETTES[0]),
             color_index: 0,
             items: references,
@@ -115,13 +122,12 @@ impl App {
         self.vertical_scroll_state = self.vertical_scroll_state.position(i * ITEM_HEIGHT);
     }
 
-    pub fn next_color(&mut self) {
-        self.color_index = (self.color_index + 1) % PALETTES.len();
+    pub fn select_next_column(&mut self) {
+        self.horizontal_scroll_state.next();
     }
 
-    pub fn previous_color(&mut self) {
-        let count = PALETTES.len();
-        self.color_index = (self.color_index + count - 1) % count;
+    pub fn select_previous_column(&mut self) {
+        self.horizontal_scroll_state.prev();
     }
 
     pub fn set_colors(&mut self) {
@@ -182,6 +188,10 @@ pub fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16, u1
     let key_len = items
         .iter()
         .map(Reference::key)
+        .flat_map(|key| match key {
+            Some(s) => s.lines(),
+            _ => "".lines(),
+        })
         .map(UnicodeWidthStr::width)
         .max()
         .unwrap_or(0);
@@ -189,6 +199,10 @@ pub fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16, u1
     let reference_type_len = items
         .iter()
         .map(Reference::reference_type)
+        .flat_map(|reference_type| match reference_type {
+            Some(s) => s.lines(),
+            _ => "".lines(),
+        })
         .map(UnicodeWidthStr::width)
         .max()
         .unwrap_or(0);
@@ -196,7 +210,7 @@ pub fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16, u1
     let author_len = items
         .iter()
         .map(Reference::formatted_author)
-        .flat_map(|title| make_lines(title))
+        .flat_map(|author| make_lines(author))
         .map(|s| UnicodeWidthStr::width(&s as &str))
         .max()
         .unwrap_or(0);
@@ -204,7 +218,7 @@ pub fn constraint_len_calculator(items: &[Reference]) -> (u16, u16, u16, u16, u1
     let year_len = items
         .iter()
         .map(Reference::year)
-        .flat_map(|title| match title {
+        .flat_map(|year| match year {
             Some(s) => s.lines(),
             _ => "".lines(),
         })

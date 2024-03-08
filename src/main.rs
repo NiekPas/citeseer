@@ -128,15 +128,19 @@ fn handle_keyboard_command(app: &mut App, key_code: KeyCode) -> bool {
     match key_code {
         Char('j') | Down => app.select_next(),
         Char('k') | Up => app.select_previous(),
-        Char('l') | Right => app.next_color(),
-        Char('h') | Left => app.previous_color(),
+        Char('l') | Right => app.select_next_column(),
+        Char('h') | Left => app.select_previous_column(),
         Char('y') => match app.yank() {
-            Some(reference) => {
-                app.status_bar = StatusBar::Message(format!(
-                    "Copied {} to the clipboard as BibTeX.",
-                    reference.key
-                ));
-            }
+            Some(reference) => match reference.fields.get(&reference::FieldType::Key) {
+                Some(key) => {
+                    app.status_bar =
+                        StatusBar::Message(format!("Copied {} to the clipboard as BibTeX.", key))
+                }
+                None => {
+                    app.status_bar =
+                        StatusBar::Message(format!("Copied reference to the clipboard as BibTeX."))
+                }
+            },
             None => app.status_bar = StatusBar::Message(String::from("Yank failed.")),
         },
         Char('/') => {

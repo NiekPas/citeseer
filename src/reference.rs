@@ -1,14 +1,10 @@
-use std::{collections::HashMap, str::Split};
+use std::{collections::HashMap, fmt::Display, str::Split};
 
 use unicode_width::UnicodeWidthStr;
 
-use crate::app::HEADERS;
-
 #[derive(Debug, Clone)]
 pub struct Reference {
-    pub key: String,
-    pub reference_type: ReferenceType,
-    pub fields: HashMap<String, String>,
+    pub fields: HashMap<FieldType, String>,
 }
 
 #[derive(Debug, Clone)]
@@ -79,6 +75,130 @@ impl UnicodeWidthStr for ReferenceType {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum FieldType {
+    Abstract,
+    Address,
+    Annote,
+    Author,
+    Booktitle,
+    Chapter,
+    Crossref,
+    Day,
+    Doi,
+    Edition,
+    Editor,
+    Eprint,
+    Howpublished,
+    Institution,
+    Isbn,
+    Issn,
+    Journal,
+    Key,
+    Keywords,
+    Month,
+    Note,
+    Number,
+    Organization,
+    Pages,
+    Pmid,
+    Publisher,
+    School,
+    Series,
+    Title,
+    Type,
+    Url,
+    UrlDate,
+    Volume,
+    Year,
+}
+
+impl Display for FieldType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FieldType::Abstract => write!(f, "abstract"),
+            FieldType::Address => write!(f, "address"),
+            FieldType::Annote => write!(f, "annote"),
+            FieldType::Author => write!(f, "author"),
+            FieldType::Booktitle => write!(f, "booktitle"),
+            FieldType::Chapter => write!(f, "chapter"),
+            FieldType::Crossref => write!(f, "crossref"),
+            FieldType::Day => write!(f, "day"),
+            FieldType::Doi => write!(f, "doi"),
+            FieldType::Edition => write!(f, "edition"),
+            FieldType::Editor => write!(f, "editor"),
+            FieldType::Eprint => write!(f, "eprint"),
+            FieldType::Howpublished => write!(f, "howpublished"),
+            FieldType::Institution => write!(f, "institution"),
+            FieldType::Isbn => write!(f, "isbn"),
+            FieldType::Issn => write!(f, "issn"),
+            FieldType::Journal => write!(f, "journal"),
+            FieldType::Key => write!(f, "key"),
+            FieldType::Keywords => write!(f, "keywords"),
+            FieldType::Month => write!(f, "month"),
+            FieldType::Note => write!(f, "note"),
+            FieldType::Number => write!(f, "number"),
+            FieldType::Organization => write!(f, "organization"),
+            FieldType::Pages => write!(f, "pages"),
+            FieldType::Pmid => write!(f, "pmid"),
+            FieldType::Publisher => write!(f, "publisher"),
+            FieldType::School => write!(f, "school"),
+            FieldType::Series => write!(f, "series"),
+            FieldType::Title => write!(f, "title"),
+            FieldType::Type => write!(f, "type"),
+            FieldType::Url => write!(f, "url"),
+            FieldType::UrlDate => write!(f, "urldate"),
+            FieldType::Volume => write!(f, "volume"),
+            FieldType::Year => write!(f, "year"),
+        }
+    }
+}
+
+impl TryFrom<&str> for FieldType {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "abstract" => Ok(FieldType::Abstract),
+            "address" => Ok(FieldType::Address),
+            "annote" => Ok(FieldType::Annote),
+            "author" => Ok(FieldType::Author),
+            "booktitle" => Ok(FieldType::Booktitle),
+            "chapter" => Ok(FieldType::Chapter),
+            "crossref" => Ok(FieldType::Crossref),
+            "day" => Ok(FieldType::Day),
+            "doi" => Ok(FieldType::Doi),
+            "edition" => Ok(FieldType::Edition),
+            "editor" => Ok(FieldType::Editor),
+            "eprint" => Ok(FieldType::Eprint),
+            "howpublished" => Ok(FieldType::Howpublished),
+            "institution" => Ok(FieldType::Institution),
+            "isbn" => Ok(FieldType::Isbn),
+            "issn" => Ok(FieldType::Issn),
+            "journal" => Ok(FieldType::Journal),
+            "key" => Ok(FieldType::Key),
+            "keywords" => Ok(FieldType::Keywords),
+            "month" => Ok(FieldType::Month),
+            "note" => Ok(FieldType::Note),
+            "number" => Ok(FieldType::Number),
+            "issue" => Ok(FieldType::Number),
+            "organization" => Ok(FieldType::Organization),
+            "pages" => Ok(FieldType::Pages),
+            "pmid" => Ok(FieldType::Pmid),
+            "publisher" => Ok(FieldType::Publisher),
+            "school" => Ok(FieldType::School),
+            "series" => Ok(FieldType::Series),
+            "title" => Ok(FieldType::Title),
+            "type" => Ok(FieldType::Type),
+            "url" => Ok(FieldType::Url),
+            "urldate" => Ok(FieldType::UrlDate),
+            "volume" => Ok(FieldType::Volume),
+            "year" => Ok(FieldType::Year),
+            _ => Err(format!("Failed to parse field type: {}", value).to_owned()),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 enum AuthorName {
     FirstNameLastName {
@@ -114,56 +234,63 @@ impl Reference {
     pub fn new(
         key: String,
         reference_type: ReferenceType,
-        fields: HashMap<String, String>,
+        fields: HashMap<FieldType, String>,
     ) -> Reference {
+        // This is bad, performance-wise. Let's see if it becomes a problem.
+        let mut fields = fields.clone();
+        fields.insert(FieldType::Key, key);
+        fields.insert(FieldType::Type, reference_type.to_string());
         Reference {
-            key,
-            fields,
-            reference_type,
+            fields: fields.to_owned(),
         }
     }
 
-    pub fn as_array(&self) -> [Option<String>; HEADERS.len()] {
-        let title: Option<String> = self.fields.get("title").cloned();
-        let author: Option<String> = self.formatted_author().to_owned();
-        let year: Option<String> = self.fields.get("year").cloned();
-        let entry_type = self.reference_type().to_string();
-
-        [
-            Some(self.key.to_owned()),
-            Some(entry_type),
-            author,
-            year,
-            title,
-        ]
+    pub fn as_array(&self, visible_headers: &Vec<FieldType>) -> Vec<Option<String>> {
+        let retval: Vec<Option<String>> = visible_headers
+            .iter()
+            .map(|visible_header| self.fields.get(visible_header).cloned())
+            .collect();
+        retval
     }
 
-    pub fn key(&self) -> &str {
-        &self.key
+    pub fn key(&self) -> Option<&String> {
+        self.fields.get(&FieldType::Key)
     }
 
     pub fn title(&self) -> Option<&String> {
-        self.fields.get("title")
+        self.fields.get(&FieldType::Title)
     }
 
     pub fn year(&self) -> Option<&String> {
-        self.fields.get("year")
+        self.fields.get(&FieldType::Year)
     }
 
     pub fn formatted_author(&self) -> Option<String> {
         self.fields
-            .get("author")
+            .get(&FieldType::Author)
             .map(extract_authors_from_string)
             .map(|authors| authors.iter().map(format_author).collect::<Vec<String>>())
             .map(|authors| authors.join("; "))
     }
 
-    pub fn reference_type(&self) -> &ReferenceType {
-        &self.reference_type
+    pub fn reference_type(&self) -> Option<&String> {
+        self.fields.get(&FieldType::Type)
     }
 
     pub fn to_bibtex(&self) -> String {
-        let mut bibtex = format!("@article{{{key},\n", key = self.key);
+        let opt_key = self.fields.get(&FieldType::Key);
+        // If we don't have a 'key', but we do have an author, use that as the key.
+        let author = self
+            .fields
+            .get(&FieldType::Author)
+            .map(|s| s.as_ref())
+            .unwrap_or("");
+        let output_key = match opt_key {
+            Some(k) => k.to_owned(),
+            None => author.to_owned(),
+        };
+
+        let mut bibtex = format!("@article{{{key},\n", key = output_key);
 
         for (field, value) in &self.fields {
             bibtex.push_str(&format!("    {} = {{{}}},\n", field, value));
@@ -177,7 +304,9 @@ impl Reference {
 
 impl PartialEq for Reference {
     fn eq(&self, other: &Self) -> bool {
-        self.key == other.key && self.fields == other.fields
+        // TODO I'm not sure if this '==' works now? Probably yes?
+        self.fields.get(&FieldType::Key) == self.fields.get(&FieldType::Key)
+            && self.fields == other.fields
     }
 }
 
@@ -185,16 +314,16 @@ impl Eq for Reference {}
 
 impl PartialOrd for Reference {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let a1 = self.fields.get("author");
-        let a2 = other.fields.get("author");
+        let a1 = self.fields.get(&FieldType::Author);
+        let a2 = other.fields.get(&FieldType::Author);
         a1.partial_cmp(&a2)
     }
 }
 
 impl Ord for Reference {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let a1 = self.fields.get("author");
-        let a2 = other.fields.get("author");
+        let a1 = self.fields.get(&FieldType::Author);
+        let a2 = other.fields.get(&FieldType::Author);
         a1.cmp(&a2)
     }
 }
@@ -268,23 +397,28 @@ fn is_initials(str: &str) -> bool {
     }
 }
 
-pub fn _search_references<'a>(
-    references: &'a Vec<Reference>,
-    search_string: &'a String,
-) -> Vec<&'a Reference> {
-    references
-        .iter()
-        .filter(|reference| _contains_string(reference, search_string))
-        .collect()
-}
+// TODO? remove these functions
+// pub fn _search_references<'a>(
+//     references: &'a Vec<Reference>,
+//     search_string: &'a String,
+// ) -> Vec<&'a Reference> {
+//     references
+//         .iter()
+//         .filter(|reference| _contains_string(reference, search_string))
+//         .collect()
+// }
 
-fn _contains_string(reference: &Reference, string: &String) -> bool {
-    reference.key.contains(string)
-        || reference
-            .fields
-            .values()
-            .any(|value| value.contains(string))
-}
+// fn _contains_string(reference: &Reference, string: &String) -> bool {
+//     if let Some(key) = reference.fields.get(&FieldType::Key) {
+//         key.contains(string)
+//             || reference
+//                 .fields
+//                 .values()
+//                 .any(|value| value.contains(string))
+//     } else {
+//         false
+//     }
+// }
 
 fn format_author(author: &Author) -> String {
     match author.name {

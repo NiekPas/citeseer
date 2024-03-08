@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 use crate::{
-    app::{StatusBar, StatusBarInput, HEADERS, ITEM_HEIGHT},
+    app::{StatusBar, StatusBarInput, ITEM_HEIGHT},
     reference::Reference,
     App,
 };
@@ -21,7 +21,8 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
 
     render_table(frame, app, rects[0]);
 
-    render_scrollbar(frame, app, rects[0]);
+    render_vertical_scrollbar(frame, app, rects[0]);
+    render_horizontal_scrollbar(frame, app, rects[0]);
 
     render_footer(frame, app, rects[1]);
 }
@@ -34,9 +35,10 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
         .add_modifier(Modifier::REVERSED)
         .fg(app.colors.selected_style_fg);
 
-    let header = HEADERS
+    let header = app
+        .visible_headers
         .iter()
-        .cloned()
+        .map(ToString::to_string)
         .map(Cell::from)
         .collect::<Row>()
         .style(header_style)
@@ -59,7 +61,7 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
         };
 
         reference
-            .as_array()
+            .as_array(&app.visible_headers)
             .iter()
             .cloned()
             .map(|content| content.unwrap_or_default())
@@ -71,12 +73,11 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
     });
 
     let bar = " █ ";
-    let header_constraints: [Constraint; HEADERS.len()] = [
+    let header_constraints: Vec<Constraint> = vec![
         // key
         // This is somewhat arbitrary, but having the column be slightly less wide than to fit is fine for keys,
         // since we normally don't need to see the entire key anyway.
-        Constraint::Min(app.longest_item_lens.0 - 6),
-        //
+        Constraint::Min(app.longest_item_lens.0.saturating_sub(6)),
         Constraint::Length(app.longest_item_lens.1),
         // For the author, we use a percentage, because the longest item is going to be like 300 characters
         Constraint::Percentage(25),
@@ -104,7 +105,7 @@ fn compare_authors(a: &Reference, b: &Reference) -> Ordering {
     a.formatted_author().cmp(&b.formatted_author())
 }
 
-fn render_scrollbar(frame: &mut Frame, app: &mut App, area: Rect) {
+fn render_vertical_scrollbar(frame: &mut Frame, app: &mut App, area: Rect) {
     frame.render_stateful_widget(
         Scrollbar::default()
             .orientation(ScrollbarOrientation::VerticalRight)
@@ -115,6 +116,20 @@ fn render_scrollbar(frame: &mut Frame, app: &mut App, area: Rect) {
             horizontal: 1,
         }),
         &mut app.vertical_scroll_state,
+    );
+}
+
+fn render_horizontal_scrollbar(frame: &mut Frame, app: &mut App, area: Rect) {
+    frame.render_stateful_widget(
+        Scrollbar::default()
+            .orientation(ScrollbarOrientation::HorizontalBottom)
+            .begin_symbol(None)
+            .end_symbol(None),
+        area.inner(&Margin {
+            vertical: 1,
+            horizontal: 1,
+        }),
+        &mut app.horizontal_scroll_state,
     );
 }
 
