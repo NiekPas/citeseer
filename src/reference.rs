@@ -304,7 +304,6 @@ impl Reference {
 
 impl PartialEq for Reference {
     fn eq(&self, other: &Self) -> bool {
-        // TODO I'm not sure if this '==' works now? Probably yes?
         self.fields.get(&FieldType::Key) == self.fields.get(&FieldType::Key)
             && self.fields == other.fields
     }
