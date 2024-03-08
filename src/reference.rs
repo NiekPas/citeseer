@@ -397,29 +397,6 @@ fn is_initials(str: &str) -> bool {
     }
 }
 
-// TODO? remove these functions
-// pub fn _search_references<'a>(
-//     references: &'a Vec<Reference>,
-//     search_string: &'a String,
-// ) -> Vec<&'a Reference> {
-//     references
-//         .iter()
-//         .filter(|reference| _contains_string(reference, search_string))
-//         .collect()
-// }
-
-// fn _contains_string(reference: &Reference, string: &String) -> bool {
-//     if let Some(key) = reference.fields.get(&FieldType::Key) {
-//         key.contains(string)
-//             || reference
-//                 .fields
-//                 .values()
-//                 .any(|value| value.contains(string))
-//     } else {
-//         false
-//     }
-// }
-
 fn format_author(author: &Author) -> String {
     match author.name {
         AuthorName::FirstNameLastName {
